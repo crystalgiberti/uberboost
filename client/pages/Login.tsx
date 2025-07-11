@@ -322,6 +322,15 @@ export default function Login() {
               </Button>
             </form>
 
+            {/* Debug API Test Button */}
+            <Button
+              variant="outline"
+              className="w-full text-sm border-red-500 text-red-500 hover:bg-red-50"
+              onClick={runDebugTests}
+            >
+              🔧 Debug API Endpoints (Check Console)
+            </Button>
+
             {/* Switch between login/register */}
             <div className="text-center">
               <Button
