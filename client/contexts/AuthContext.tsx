@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import apiService from "../services/apiService";
+import { simpleRegister, simpleLogin } from "../services/simpleApiService";
 
 interface User {
   id: string;
