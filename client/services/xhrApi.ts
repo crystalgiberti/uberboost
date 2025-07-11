@@ -13,11 +13,10 @@ class XHRClient {
     // Auto-detect the base URL from current location
     if (typeof window !== "undefined") {
       const currentUrl = new URL(window.location.href);
-      // Use the same origin but different port for dev server
-      this.baseUrl =
-        baseUrl || `${currentUrl.protocol}//${currentUrl.hostname}:5000`;
+      // Use the same origin and port since Express is integrated with Vite
+      this.baseUrl = baseUrl || currentUrl.origin;
     } else {
-      this.baseUrl = baseUrl || "http://localhost:5000";
+      this.baseUrl = baseUrl || "http://localhost:8080";
     }
     console.log("XHR Client initialized with baseUrl:", this.baseUrl);
   }
