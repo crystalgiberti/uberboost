@@ -286,6 +286,29 @@ export default function Schedule() {
       </header>
 
       <div className="p-4 space-y-6">
+        {/* Real-time Clock */}
+        <Card className="border-florida-sunset/20 bg-gradient-to-r from-white to-florida-sunset-light/20">
+          <CardContent className="p-4">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-florida-sunset">
+                {currentTime.toLocaleTimeString("en-US", {
+                  hour: "numeric",
+                  minute: "2-digit",
+                  hour12: true,
+                })}
+              </div>
+              <div className="text-sm text-muted-foreground">
+                {currentTime.toLocaleDateString("en-US", {
+                  weekday: "long",
+                  month: "long",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Weekly Goal Progress */}
         <Card className="border-florida-ocean/20 bg-gradient-to-r from-white to-florida-ocean/10">
           <CardHeader className="pb-3">
