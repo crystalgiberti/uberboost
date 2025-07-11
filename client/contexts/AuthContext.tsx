@@ -55,8 +55,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      console.log("🎯 Using DIRECT login API...");
-      const response = await directLogin(email, password);
+      console.log("⚛️ Using ATOMIC login API...");
+
+      // Run debug tests first
+      console.log("Running debug fetch tests...");
+      await debugFetch();
+
+      const response = await atomicLogin(email, password);
 
       // Set token in localStorage and API service
       if (response.token) {
@@ -73,6 +78,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("✅ Login completed in context");
     } catch (error) {
       console.error("❌ Login failed in context:", error);
+
+      // Try minimal auth as fallback
+      console.log("Trying minimal auth fallback...");
+      try {
+        const fallbackResult = await testMinimalAuth();
+        console.log("Minimal auth result:", fallbackResult);
+      } catch (fallbackError) {
+        console.error("Fallback also failed:", fallbackError);
+      }
+
       throw error;
     }
   };
@@ -86,12 +101,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     city?: string;
   }) => {
     try {
-      console.log("🎯 Using DIRECT register API...");
+      console.log("⚛️ Using ATOMIC register API...");
       console.log("Attempting registration with:", {
         ...userData,
         password: "[HIDDEN]",
       });
-      const response = await directRegister(userData);
+
+      // Run debug tests first
+      console.log("Running debug fetch tests...");
+      await debugFetch();
+
+      const response = await atomicRegister(userData);
 
       // Set token in localStorage and API service
       if (response.token) {
@@ -108,6 +128,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       console.log("✅ Registration completed in context");
     } catch (error) {
       console.error("❌ Registration failed in context:", error);
+
+      // Try minimal auth as fallback
+      console.log("Trying minimal auth fallback...");
+      try {
+        const fallbackResult = await testMinimalAuth();
+        console.log("Minimal auth result:", fallbackResult);
+      } catch (fallbackError) {
+        console.error("Fallback also failed:", fallbackError);
+      }
+
       throw error;
     }
   };
