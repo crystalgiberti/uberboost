@@ -23,10 +23,18 @@ class ApiService {
     }
 
     try {
+      console.log(`API Request: ${options.method || "GET"} ${url}`);
+      console.log("Request headers:", headers);
+      if (options.body) {
+        console.log("Request body:", options.body);
+      }
+
       const response = await fetch(url, {
         ...options,
         headers,
       });
+
+      console.log(`API Response: ${response.status} ${response.statusText}`);
 
       // Check if response is ok first, then handle JSON parsing
       if (!response.ok) {
