@@ -30,6 +30,10 @@ function expressPlugin(): Plugin {
       const app = createServer();
 
       // Add Express app as middleware to Vite dev server
+      // Use '/api' prefix to ensure API routes are handled before static files
+      server.middlewares.use("/api", app);
+
+      // Also add the app without prefix for other routes
       server.middlewares.use(app);
     },
   };
