@@ -179,7 +179,7 @@ export default function Schedule() {
   };
 
   // Load active schedule from localStorage on mount
-  useState(() => {
+  useEffect(() => {
     const savedSchedule = localStorage.getItem("activeSchedule");
     if (savedSchedule) {
       try {
@@ -193,7 +193,7 @@ export default function Schedule() {
         localStorage.removeItem("activeSchedule");
       }
     }
-  });
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-florida-sky via-background to-florida-ocean/10 pb-20">
