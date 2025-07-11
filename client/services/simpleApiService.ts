@@ -1,54 +1,59 @@
-// Ultra-safe API service to completely avoid body stream issues
+// Ultra-simple API service - absolutely minimal approach
 
-async function safeApiCall(
+async function basicApiCall(
   url: string,
   options: RequestInit = {},
 ): Promise<any> {
-  console.log(`Making API call to: ${url}`);
-  console.log("Options:", {
-    ...options,
-    body: options.body ? "[DATA]" : undefined,
-  });
+  console.log(`🚀 Basic API call to: ${url}`);
+
+  let response: Response;
+  let responseBody: string;
 
   try {
-    const response = await fetch(url, options);
-    console.log(`Response received: ${response.status} ${response.statusText}`);
+    // Step 1: Make the request
+    response = await fetch(url, options);
+    console.log(`📡 Response status: ${response.status}`);
 
-    // Create a response reader that handles everything safely
-    const responseReader = new Promise(async (resolve, reject) => {
-      try {
-        // Read the entire response as an ArrayBuffer to avoid any stream issues
-        const arrayBuffer = await response.arrayBuffer();
-        const text = new TextDecoder().decode(arrayBuffer);
-
-        console.log("Raw response text:", text);
-
-        resolve({
-          ok: response.ok,
-          status: response.status,
-          statusText: response.statusText,
-          text: text,
-          data: text
-            ? (() => {
-                try {
-                  return JSON.parse(text);
-                } catch {
-                  return null;
-                }
-              })()
-            : null,
-        });
-      } catch (error) {
-        reject(error);
-      }
-    });
-
-    const result = await responseReader;
-    return result;
-  } catch (error) {
-    console.error("API call failed:", error);
-    throw error;
+    // Step 2: Read the body immediately and completely
+    responseBody = await response.text();
+    console.log(`📝 Response body length: ${responseBody.length}`);
+    console.log(
+      `📄 Response body preview: ${responseBody.substring(0, 100)}...`,
+    );
+  } catch (fetchError) {
+    console.error(`❌ Fetch failed:`, fetchError);
+    throw new Error(`Network request failed: ${fetchError}`);
   }
+
+  // Step 3: Parse the response
+  let parsedData = null;
+  if (responseBody) {
+    try {
+      parsedData = JSON.parse(responseBody);
+      console.log(`✅ JSON parsed successfully`);
+    } catch (parseError) {
+      console.warn(`⚠️ JSON parse failed, using raw text:`, parseError);
+      parsedData = responseBody;
+    }
+  }
+
+  // Step 4: Handle the result
+  const result = {
+    ok: response.ok,
+    status: response.status,
+    statusText: response.statusText,
+    body: responseBody,
+    data: parsedData,
+  };
+
+  console.log(`📊 Final result:`, {
+    ok: result.ok,
+    status: result.status,
+    hasBody: !!result.body,
+    hasData: !!result.data,
+  });
+
+  return result;
 }
 
 export const simpleRegister = async (userData: {
@@ -59,11 +64,11 @@ export const simpleRegister = async (userData: {
   phone?: string;
   city?: string;
 }) => {
-  console.log("=== STARTING REGISTRATION ===");
-  console.log("User data:", { ...userData, password: "[HIDDEN]" });
+  console.log(`🔥 === SIMPLE REGISTER START ===`);
+  console.log(`👤 User data:`, { ...userData, password: "[HIDDEN]" });
 
   try {
-    const result = await safeApiCall("/api/auth/register", {
+    const result = await basicApiCall("/api/auth/register", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -71,39 +76,34 @@ export const simpleRegister = async (userData: {
       body: JSON.stringify(userData),
     });
 
-    console.log("Registration response:", {
-      ok: result.ok,
-      status: result.status,
-      hasData: !!result.data,
-    });
-
     if (!result.ok) {
       const errorMessage =
         result.data?.error ||
-        result.text ||
+        result.body ||
         `Registration failed (${result.status})`;
-      console.error("Registration failed:", errorMessage);
+      console.error(`❌ Registration failed:`, errorMessage);
       throw new Error(errorMessage);
     }
 
     if (!result.data) {
+      console.error(`❌ No data in successful response`);
       throw new Error("No data received from server");
     }
 
-    console.log("✅ Registration successful!");
+    console.log(`✅ Registration successful!`);
     return result.data;
   } catch (error) {
-    console.error("❌ Registration error:", error);
+    console.error(`🔥 Registration error:`, error);
     throw error;
   }
 };
 
 export const simpleLogin = async (email: string, password: string) => {
-  console.log("=== STARTING LOGIN ===");
-  console.log("Email:", email);
+  console.log(`🔥 === SIMPLE LOGIN START ===`);
+  console.log(`📧 Email:`, email);
 
   try {
-    const result = await safeApiCall("/api/auth/login", {
+    const result = await basicApiCall("/api/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -111,49 +111,44 @@ export const simpleLogin = async (email: string, password: string) => {
       body: JSON.stringify({ email, password }),
     });
 
-    console.log("Login response:", {
-      ok: result.ok,
-      status: result.status,
-      hasData: !!result.data,
-    });
-
     if (!result.ok) {
       const errorMessage =
-        result.data?.error || result.text || `Login failed (${result.status})`;
-      console.error("Login failed:", errorMessage);
+        result.data?.error || result.body || `Login failed (${result.status})`;
+      console.error(`❌ Login failed:`, errorMessage);
       throw new Error(errorMessage);
     }
 
     if (!result.data) {
+      console.error(`❌ No data in successful response`);
       throw new Error("No data received from server");
     }
 
-    console.log("✅ Login successful!");
+    console.log(`✅ Login successful!`);
     return result.data;
   } catch (error) {
-    console.error("❌ Login error:", error);
+    console.error(`🔥 Login error:`, error);
     throw error;
   }
 };
 
-// Test function to verify API connectivity
 export const testApiConnection = async () => {
-  console.log("=== TESTING API CONNECTION ===");
+  console.log(`🔥 === API CONNECTION TEST ===`);
 
   try {
-    const result = await safeApiCall("/api/ping");
-
-    console.log("Ping result:", result);
+    const result = await basicApiCall("/api/ping");
 
     if (result.ok && result.data) {
-      console.log("✅ API connection working!");
+      console.log(`✅ API connection working!`);
       return true;
     } else {
-      console.log("❌ API connection failed");
+      console.log(`❌ API connection failed`);
       return false;
     }
   } catch (error) {
-    console.error("❌ API connection error:", error);
+    console.error(`🔥 API connection error:`, error);
     return false;
   }
 };
+
+// Export the basic function for direct testing
+export { basicApiCall };
