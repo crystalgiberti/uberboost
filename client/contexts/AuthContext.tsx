@@ -54,18 +54,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      console.log("Using simple login API...");
-      const response = await simpleLogin(email, password);
+      console.log("🎯 Using DIRECT login API...");
+      const response = await directLogin(email, password);
 
       // Set token in localStorage and API service
       if (response.token) {
         localStorage.setItem("auth_token", response.token);
         apiService.setToken(response.token);
+        console.log("Token saved to localStorage");
       }
 
-      setUser(response.user);
+      if (response.user) {
+        setUser(response.user);
+        console.log("User set in context");
+      }
+
+      console.log("✅ Login completed in context");
     } catch (error) {
-      console.error("Login failed:", error);
+      console.error("❌ Login failed in context:", error);
       throw error;
     }
   };
@@ -79,23 +85,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     city?: string;
   }) => {
     try {
-      console.log("Using simple register API...");
+      console.log("🎯 Using DIRECT register API...");
       console.log("Attempting registration with:", {
         ...userData,
         password: "[HIDDEN]",
       });
-      const response = await simpleRegister(userData);
+      const response = await directRegister(userData);
 
       // Set token in localStorage and API service
       if (response.token) {
         localStorage.setItem("auth_token", response.token);
         apiService.setToken(response.token);
+        console.log("Token saved to localStorage");
       }
 
-      console.log("Registration successful");
-      setUser(response.user);
+      if (response.user) {
+        setUser(response.user);
+        console.log("User set in context");
+      }
+
+      console.log("✅ Registration completed in context");
     } catch (error) {
-      console.error("Registration failed:", error);
+      console.error("❌ Registration failed in context:", error);
       throw error;
     }
   };
