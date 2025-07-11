@@ -25,16 +25,27 @@ function expressPlugin(): Plugin {
     name: "express-plugin",
     apply: "serve", // Only apply during development (serve mode)
     async configureServer(server) {
-      // Dynamically import the server only during development
-      const { createServer } = await import("./server/index.js");
-      const app = createServer();
+      try {
+        // Dynamically import the server only during development
+        const { createServer } = await import("./server/index.js");
+        const app = createServer();
 
-      // Add Express app as middleware to Vite dev server
-      // Use '/api' prefix to ensure API routes are handled before static files
-      server.middlewares.use("/api", app);
+        console.log("🚀 Express server created successfully");
 
-      // Also add the app without prefix for other routes
-      server.middlewares.use(app);
+        // Add Express app as middleware to Vite dev server
+        // Mount it before Vite's internal middleware to handle API routes first
+        server.middlewares.use((req, res, next) => {
+          // Only let Express handle API routes
+          if (req.url?.startsWith("/api/")) {
+            console.log(`🔄 Routing ${req.method} ${req.url} to Express`);
+            app(req, res, next);
+          } else {
+            next();
+          }
+        });
+      } catch (error) {
+        console.error("❌ Failed to create Express server:", error);
+      }
     },
   };
 }
