@@ -413,15 +413,56 @@ export default function Schedule() {
           </CardContent>
         </Card>
 
+        {/* Active Schedule Status */}
+        {isScheduleActive && currentScheduleItem && (
+          <Card className="border-green-200 bg-gradient-to-r from-green-50 to-green-100">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="font-semibold text-green-800">
+                      Schedule Active
+                    </span>
+                  </div>
+                  <div className="text-sm text-green-700">
+                    Current: {currentScheduleItem.title} at{" "}
+                    {currentScheduleItem.location}
+                  </div>
+                  <div className="text-xs text-green-600">
+                    Started: {scheduledStartTime?.toLocaleTimeString()}
+                  </div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={stopSchedule}
+                  className="border-red-300 text-red-700 hover:bg-red-50"
+                >
+                  Stop
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-4">
-          <Button className="h-12 bg-florida-ocean hover:bg-florida-ocean-dark text-white">
+          <Button
+            className={`h-12 ${
+              isScheduleActive
+                ? "bg-green-600 hover:bg-green-700"
+                : "bg-florida-ocean hover:bg-florida-ocean-dark"
+            } text-white`}
+            onClick={isScheduleActive ? stopSchedule : startSchedule}
+          >
             <Clock className="w-5 h-5 mr-2" />
-            Start Schedule
+            {isScheduleActive ? "Stop Schedule" : "Start Schedule"}
           </Button>
           <Button
             variant="outline"
             className="h-12 border-florida-sunset text-florida-sunset hover:bg-florida-sunset hover:text-white"
+            onClick={() => navigate("/settings")}
           >
             <Settings className="w-5 h-5 mr-2" />
             Customize
