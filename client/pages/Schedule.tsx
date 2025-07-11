@@ -118,6 +118,83 @@ export default function Schedule() {
     return "bg-surge-low";
   };
 
+  const getCurrentScheduleItem = () => {
+    const now = new Date();
+    const currentTime = now.getHours() * 60 + now.getMinutes();
+
+    for (const item of todaySchedule) {
+      const [hour, minute] = item.time.split(/[: ]/).map(Number);
+      const itemTime =
+        (hour + (item.time.includes("PM") && hour !== 12 ? 12 : 0)) * 60 +
+        minute;
+
+      // Find the current or next scheduled item
+      if (itemTime >= currentTime - 30) {
+        // Within 30 minutes
+        return item;
+      }
+    }
+    return todaySchedule[0]; // Default to first item
+  };
+
+  const startSchedule = () => {
+    const nextItem = getCurrentScheduleItem();
+    setCurrentScheduleItem(nextItem);
+    setIsScheduleActive(true);
+    setScheduledStartTime(new Date());
+
+    // Store in localStorage for persistence
+    localStorage.setItem(
+      "activeSchedule",
+      JSON.stringify({
+        item: nextItem,
+        startTime: new Date().toISOString(),
+        isActive: true,
+      }),
+    );
+
+    // Navigate to appropriate page based on schedule item
+    if (nextItem.type === "drive") {
+      navigate("/surge-navigation", {
+        state: {
+          targetLocation: nextItem.location,
+          expectedEarnings: nextItem.earning,
+          expectedSurge: nextItem.surge,
+          scheduledItem: nextItem,
+        },
+      });
+    } else {
+      // For break items, show notification and stay on schedule page
+      alert(
+        `Break time! ${nextItem.title} at ${nextItem.location}. ${nextItem.earning}`,
+      );
+    }
+  };
+
+  const stopSchedule = () => {
+    setIsScheduleActive(false);
+    setCurrentScheduleItem(null);
+    setScheduledStartTime(null);
+    localStorage.removeItem("activeSchedule");
+  };
+
+  // Load active schedule from localStorage on mount
+  useState(() => {
+    const savedSchedule = localStorage.getItem("activeSchedule");
+    if (savedSchedule) {
+      try {
+        const parsed = JSON.parse(savedSchedule);
+        if (parsed.isActive) {
+          setCurrentScheduleItem(parsed.item);
+          setIsScheduleActive(true);
+          setScheduledStartTime(new Date(parsed.startTime));
+        }
+      } catch (e) {
+        localStorage.removeItem("activeSchedule");
+      }
+    }
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-florida-sky via-background to-florida-ocean/10 pb-20">
       {/* Header */}
