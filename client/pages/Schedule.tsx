@@ -209,6 +209,15 @@ export default function Schedule() {
     localStorage.removeItem("activeSchedule");
   };
 
+  // Real-time clock updates
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 60000); // Update every minute
+
+    return () => clearInterval(timer);
+  }, []);
+
   // Load active schedule from localStorage on mount
   useEffect(() => {
     const savedSchedule = localStorage.getItem("activeSchedule");
@@ -225,6 +234,34 @@ export default function Schedule() {
       }
     }
   }, []);
+
+  // Update schedule data based on current time and selected day
+  const getScheduleForDay = (dayId: string) => {
+    const selectedDay = daysOfWeek.find((d) => d.id === dayId);
+    if (!selectedDay) return todaySchedule;
+
+    // For demonstration, return the same schedule but could be customized per day
+    return todaySchedule.map((item) => ({
+      ...item,
+      // Mark items as passed if it's today and time has passed
+      isPassed: selectedDay.isToday && isTimePassedForItem(item.time),
+    }));
+  };
+
+  const isTimePassedForItem = (timeStr: string) => {
+    const now = currentTime;
+    const [time, period] = timeStr.split(" ");
+    const [hours, minutes] = time.split(":").map(Number);
+
+    let hour24 = hours;
+    if (period === "PM" && hours !== 12) hour24 += 12;
+    if (period === "AM" && hours === 12) hour24 = 0;
+
+    const itemTime = new Date(now);
+    itemTime.setHours(hour24, minutes, 0, 0);
+
+    return now > itemTime;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-florida-sky via-background to-florida-ocean/10 pb-20">
