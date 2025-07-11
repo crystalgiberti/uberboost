@@ -66,6 +66,25 @@ export function createServer() {
     });
   });
 
+  // Test endpoint for debugging
+  app.get("/api/test", (_req, res) => {
+    res.json({
+      status: "ok",
+      database: "connected",
+      timestamp: new Date().toISOString(),
+      environment: process.env.NODE_ENV || "development",
+    });
+  });
+
+  // Test POST endpoint
+  app.post("/api/test", (req, res) => {
+    res.json({
+      status: "ok",
+      received: req.body,
+      timestamp: new Date().toISOString(),
+    });
+  });
+
   // Demo route (keeping for backward compatibility)
   app.get("/api/demo", handleDemo);
 
