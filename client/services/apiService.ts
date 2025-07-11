@@ -211,8 +211,17 @@ class ApiService {
       if (!response.ok) {
         // Try to get error message from response
         try {
-          const errorData = await response.json();
-          throw new Error(errorData.error || "Export failed");
+          const errorText = await response.text();
+          let errorMessage = "Export failed";
+
+          try {
+            const errorData = JSON.parse(errorText);
+            errorMessage = errorData.error || errorMessage;
+          } catch {
+            errorMessage = errorText || errorMessage;
+          }
+
+          throw new Error(errorMessage);
         } catch {
           throw new Error(`Export failed with status ${response.status}`);
         }
@@ -227,7 +236,8 @@ class ApiService {
         a.click();
         window.URL.revokeObjectURL(url);
       } else {
-        return response.json();
+        const responseText = await response.text();
+        return JSON.parse(responseText);
       }
     } catch (error) {
       if (error instanceof Error) {
