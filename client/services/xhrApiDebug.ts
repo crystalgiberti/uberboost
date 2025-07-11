@@ -73,7 +73,17 @@ export async function testApiEndpoints() {
   await testEndpoint("/api/ping");
   await testEndpoint("/api/test");
 
-  // Test auth endpoints
+  // Test auth endpoints - First try registration
+  addResult("🔐 Testing user registration...");
+  await testEndpoint("/api/auth/register", "POST", {
+    email: "test@example.com",
+    password: "test123",
+    firstName: "Test",
+    lastName: "User",
+  });
+
+  // Then test login with the same credentials
+  addResult("🔑 Testing user login...");
   await testEndpoint("/api/auth/login", "POST", {
     email: "test@example.com",
     password: "test123",
