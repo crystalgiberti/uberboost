@@ -28,21 +28,31 @@ class ApiService {
         headers,
       });
 
-      // Read the response once
-      const data = await response.json();
-
+      // Check if response is ok first, then handle JSON parsing
       if (!response.ok) {
-        throw new Error(
-          data.error || `Request failed with status ${response.status}`,
-        );
+        // Try to get error message from response, but handle parsing failures
+        let errorMessage = `Request failed with status ${response.status}`;
+        try {
+          const errorData = await response.json();
+          if (errorData && errorData.error) {
+            errorMessage = errorData.error;
+          }
+        } catch (jsonError) {
+          // If JSON parsing fails, use status message
+          errorMessage = `Request failed: ${response.status} ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
 
+      // Only parse JSON if response is ok
+      const data = await response.json();
       return data;
     } catch (error) {
-      // Handle network errors or JSON parsing errors
+      // Re-throw known errors
       if (error instanceof Error) {
         throw error;
       }
+      // Handle unknown errors
       throw new Error("Network request failed");
     }
   }
