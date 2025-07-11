@@ -1,9 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
-import {
-  simpleRegister,
-  simpleLogin,
-  testApiConnection,
-} from "../services/simpleApiService";
+import { directRegister, directLogin, directPing } from "../services/directApi";
 
 interface User {
   id: string;
