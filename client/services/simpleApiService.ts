@@ -72,31 +72,27 @@ export const simpleLogin = async (email: string, password: string) => {
 
     console.log("Login response status:", response.status);
 
-    const responseClone = response.clone();
+    // Read the response body as text first
+    const responseText = await response.text();
+    console.log("Login response body:", responseText);
 
     if (!response.ok) {
       let errorMessage = `Login failed (${response.status})`;
 
       try {
-        const errorText = await responseClone.text();
-        console.log("Login error response:", errorText);
-
-        if (errorText) {
-          try {
-            const errorData = JSON.parse(errorText);
-            errorMessage = errorData.error || errorMessage;
-          } catch {
-            errorMessage = errorText || errorMessage;
-          }
+        if (responseText) {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.error || errorMessage;
         }
-      } catch (readError) {
-        console.log("Could not read login error response:", readError);
+      } catch {
+        errorMessage = responseText || errorMessage;
       }
 
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
+    // Parse the successful response
+    const data = JSON.parse(responseText);
     console.log("Login successful!");
 
     return data;
