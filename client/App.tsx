@@ -19,6 +19,9 @@ import ApiConfig from "./pages/ApiConfig";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import Notifications from "./pages/Notifications";
+import Privacy from "./pages/Privacy";
+import Vehicle from "./pages/Vehicle";
+import Help from "./pages/Help";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
