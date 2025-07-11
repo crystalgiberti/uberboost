@@ -331,6 +331,28 @@ export default function Login() {
               🔧 Debug API Endpoints (Check Console)
             </Button>
 
+            {/* Quick Test Account Button */}
+            <Button
+              variant="outline"
+              className="w-full text-sm border-green-500 text-green-500 hover:bg-green-50"
+              onClick={async () => {
+                try {
+                  await register({
+                    email: "test@example.com",
+                    password: "test123",
+                    firstName: "Test",
+                    lastName: "User",
+                  });
+                  alert("Test account created and logged in!");
+                } catch (error) {
+                  console.error("Test registration failed:", error);
+                  alert("Registration failed: " + error);
+                }
+              }}
+            >
+              🚀 Create Test Account (test@example.com / test123)
+            </Button>
+
             {/* Switch between login/register */}
             <div className="text-center">
               <Button
