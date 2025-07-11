@@ -380,6 +380,51 @@ export default function Schedule() {
           </CardContent>
         </Card>
 
+        {/* Week Navigation */}
+        <Card className="border-florida-palm/20">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-3">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const newWeek = new Date(currentWeek);
+                  newWeek.setDate(newWeek.getDate() - 7);
+                  setCurrentWeek(newWeek);
+                }}
+              >
+                ← Previous Week
+              </Button>
+              <span className="font-semibold">
+                Week of{" "}
+                {currentWeek.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                })}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const newWeek = new Date(currentWeek);
+                  newWeek.setDate(newWeek.getDate() + 7);
+                  setCurrentWeek(newWeek);
+                }}
+              >
+                Next Week →
+              </Button>
+            </div>
+            <Button
+              variant="link"
+              size="sm"
+              className="w-full"
+              onClick={() => setCurrentWeek(new Date())}
+            >
+              Go to This Week
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Day Selector */}
         <div className="space-y-3">
           <h3 className="font-semibold">Select Day</h3>
