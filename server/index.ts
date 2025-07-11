@@ -40,8 +40,18 @@ import {
 export function createServer() {
   const app = express();
 
-  // Initialize database
-  initializeDatabase();
+  // Initialize database only when actually running the server
+  if (process.env.NODE_ENV !== "build") {
+    try {
+      initializeDatabase();
+    } catch (error) {
+      console.error("Database initialization failed:", error);
+      // In production, you might want to exit, but for development we continue
+      if (process.env.NODE_ENV === "production") {
+        process.exit(1);
+      }
+    }
+  }
 
   // Middleware
   app.use(cors());
