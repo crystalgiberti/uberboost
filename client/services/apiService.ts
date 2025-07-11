@@ -22,18 +22,29 @@ class ApiService {
       headers.Authorization = `Bearer ${this.token}`;
     }
 
-    const response = await fetch(url, {
-      ...options,
-      headers,
-    });
+    try {
+      const response = await fetch(url, {
+        ...options,
+        headers,
+      });
 
-    const data = await response.json();
+      // Read the response once
+      const data = await response.json();
 
-    if (!response.ok) {
-      throw new Error(data.error || "Request failed");
+      if (!response.ok) {
+        throw new Error(
+          data.error || `Request failed with status ${response.status}`,
+        );
+      }
+
+      return data;
+    } catch (error) {
+      // Handle network errors or JSON parsing errors
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error("Network request failed");
     }
-
-    return data;
   }
 
   // Authentication
