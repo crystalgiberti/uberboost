@@ -215,7 +215,21 @@ export default function Debug() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-3 gap-2">
+            <Button
+              onClick={testDebugFetch}
+              disabled={loading}
+              className="bg-yellow-600 hover:bg-yellow-700 text-white"
+            >
+              Debug Fetch
+            </Button>
+            <Button
+              onClick={testMinimalAuthTest}
+              disabled={loading}
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              Minimal Auth
+            </Button>
             <Button
               onClick={testDirectConnection}
               disabled={loading}
@@ -223,8 +237,20 @@ export default function Debug() {
             >
               Direct Ping
             </Button>
-            <Button onClick={testPing} disabled={loading} variant="outline">
-              Old Ping
+
+            <Button
+              onClick={testAtomicRegister}
+              disabled={loading}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Atomic Register
+            </Button>
+            <Button
+              onClick={testAtomicLogin}
+              disabled={loading}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            >
+              Atomic Login
             </Button>
             <Button
               onClick={testDirectRegister}
@@ -233,6 +259,7 @@ export default function Debug() {
             >
               Direct Register
             </Button>
+
             <Button
               onClick={testDirectLogin}
               disabled={loading}
