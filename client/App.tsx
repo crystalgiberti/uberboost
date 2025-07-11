@@ -26,6 +26,7 @@ import Vehicle from "./pages/Vehicle";
 import Help from "./pages/Help";
 import Debug from "./pages/Debug";
 import AuthTest from "./pages/AuthTest";
+import ApiTest from "./pages/ApiTest";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
