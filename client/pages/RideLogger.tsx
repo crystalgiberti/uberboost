@@ -64,38 +64,98 @@ export default function RideLogger() {
   const recognitionRef = useRef<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Speech recognition state
+  const [speechSupported, setSpeechSupported] = useState(false);
+  const [speechError, setSpeechError] = useState<string | null>(null);
+  const [interimTranscript, setInterimTranscript] = useState("");
+
   // Initialize speech recognition
   useEffect(() => {
-    if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) {
-      const SpeechRecognition =
-        (window as any).webkitSpeechRecognition ||
-        (window as any).SpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      recognitionRef.current.continuous = true;
-      recognitionRef.current.interimResults = true;
+    const checkSpeechSupport = () => {
+      if (
+        "webkitSpeechRecognition" in window ||
+        "SpeechRecognition" in window
+      ) {
+        setSpeechSupported(true);
+        const SpeechRecognition =
+          (window as any).webkitSpeechRecognition ||
+          (window as any).SpeechRecognition;
 
-      recognitionRef.current.onresult = (event: any) => {
-        let finalTranscript = "";
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
+        recognitionRef.current.lang = "en-US";
+
+        recognitionRef.current.onstart = () => {
+          setSpeechError(null);
+          console.log("Speech recognition started");
+        };
+
+        recognitionRef.current.onresult = (event: any) => {
+          let finalTranscript = "";
+          let interim = "";
+
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript;
+            } else {
+              interim += transcript;
+            }
           }
-        }
-        if (finalTranscript) {
-          setTranscript(finalTranscript);
-          parseVoiceInput(finalTranscript);
-        }
-      };
 
-      recognitionRef.current.onerror = (event: any) => {
-        console.error("Speech recognition error:", event.error);
-        setIsRecording(false);
-      };
+          setInterimTranscript(interim);
 
-      recognitionRef.current.onend = () => {
-        setIsRecording(false);
-      };
-    }
+          if (finalTranscript) {
+            setTranscript((prev) => prev + " " + finalTranscript);
+            parseVoiceInput(finalTranscript);
+          }
+        };
+
+        recognitionRef.current.onerror = (event: any) => {
+          console.error("Speech recognition error:", event.error);
+          let errorMessage = "Speech recognition error";
+
+          switch (event.error) {
+            case "no-speech":
+              errorMessage = "No speech detected. Please try speaking louder.";
+              break;
+            case "audio-capture":
+              errorMessage =
+                "Microphone not accessible. Please check permissions.";
+              break;
+            case "not-allowed":
+              errorMessage =
+                "Microphone access denied. Please allow microphone permissions.";
+              break;
+            case "network":
+              errorMessage =
+                "Network error. Please check your internet connection.";
+              break;
+            case "service-not-allowed":
+              errorMessage = "Speech service not allowed. Please try again.";
+              break;
+            default:
+              errorMessage = `Speech recognition error: ${event.error}`;
+          }
+
+          setSpeechError(errorMessage);
+          setIsRecording(false);
+        };
+
+        recognitionRef.current.onend = () => {
+          setIsRecording(false);
+          setInterimTranscript("");
+        };
+      } else {
+        setSpeechSupported(false);
+        setSpeechError(
+          "Speech recognition not supported in this browser. Please use Chrome or Safari.",
+        );
+      }
+    };
+
+    checkSpeechSupport();
   }, []);
 
   const parseVoiceInput = (text: string) => {
