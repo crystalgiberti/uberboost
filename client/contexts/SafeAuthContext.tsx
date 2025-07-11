@@ -47,9 +47,9 @@ export function SafeAuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    console.log("=== SAFE AUTH LOGIN ===");
+    console.log("��️ === SAFE AUTH LOGIN ===");
     try {
-      const response = await simpleLogin(email, password);
+      const response = await directLogin(email, password);
 
       if (response.token) {
         localStorage.setItem("auth_token", response.token);
@@ -76,9 +76,9 @@ export function SafeAuthProvider({ children }: { children: React.ReactNode }) {
     phone?: string;
     city?: string;
   }) => {
-    console.log("=== SAFE AUTH REGISTER ===");
+    console.log("🛡️ === SAFE AUTH REGISTER ===");
     try {
-      const response = await simpleRegister(userData);
+      const response = await directRegister(userData);
 
       if (response.token) {
         localStorage.setItem("auth_token", response.token);
