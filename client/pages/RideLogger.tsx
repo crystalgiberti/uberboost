@@ -162,64 +162,215 @@ export default function RideLogger() {
     const lowerText = text.toLowerCase();
     const updates: Partial<Ride> = {};
 
-    // Parse earnings
-    const earningsMatch = lowerText.match(/\$?(\d+(?:\.\d{2})?)/);
-    if (earningsMatch) {
-      updates.earnings = parseFloat(earningsMatch[1]);
+    // Helper function to convert spoken numbers to digits
+    const convertSpokenNumbers = (text: string) => {
+      const numberWords: { [key: string]: string } = {
+        zero: "0",
+        one: "1",
+        two: "2",
+        three: "3",
+        four: "4",
+        five: "5",
+        six: "6",
+        seven: "7",
+        eight: "8",
+        nine: "9",
+        ten: "10",
+        eleven: "11",
+        twelve: "12",
+        thirteen: "13",
+        fourteen: "14",
+        fifteen: "15",
+        sixteen: "16",
+        seventeen: "17",
+        eighteen: "18",
+        nineteen: "19",
+        twenty: "20",
+        thirty: "30",
+        forty: "40",
+        fifty: "50",
+        sixty: "60",
+        seventy: "70",
+        eighty: "80",
+        ninety: "90",
+      };
+
+      let result = text;
+      Object.entries(numberWords).forEach(([word, digit]) => {
+        result = result.replace(new RegExp(`\\b${word}\\b`, "g"), digit);
+      });
+
+      // Handle compound numbers like "twenty five"
+      result = result.replace(/(\d+)\s+(\d+)/g, (match, tens, ones) => {
+        const tensNum = parseInt(tens);
+        const onesNum = parseInt(ones);
+        if (tensNum >= 20 && tensNum <= 90 && onesNum <= 9) {
+          return (tensNum + onesNum).toString();
+        }
+        return match;
+      });
+
+      return result;
+    };
+
+    const processedText = convertSpokenNumbers(lowerText);
+
+    // Parse earnings - handle multiple formats
+    const earningsPatterns = [
+      /(?:earned?|made?|got|received?)\s*\$?(\d+(?:\.\d{2})?)/,
+      /\$(\d+(?:\.\d{2})?)/,
+      /(\d+(?:\.\d{2})?)\s*dollars?/,
+      /(\d+(?:\.\d{2})?)\s*bucks?/,
+    ];
+
+    for (const pattern of earningsPatterns) {
+      const match = processedText.match(pattern);
+      if (match) {
+        updates.earnings = parseFloat(match[1]);
+        break;
+      }
     }
 
-    // Parse surge
-    const surgeMatch = lowerText.match(/(\d+(?:\.\d)?)\s*x\s*surge/);
-    if (surgeMatch) {
-      updates.surge = parseFloat(surgeMatch[1]);
+    // Parse surge - handle multiple formats
+    const surgePatterns = [
+      /(\d+(?:\.\d)?)\s*(?:x|times?)\s*surge/,
+      /surge\s*(?:of\s*)?(\d+(?:\.\d)?)/,
+      /(\d+(?:\.\d)?)\s*(?:x|times?)\s*multiplier/,
+      /multiplier\s*(?:of\s*)?(\d+(?:\.\d)?)/,
+    ];
+
+    for (const pattern of surgePatterns) {
+      const match = processedText.match(pattern);
+      if (match) {
+        updates.surge = parseFloat(match[1]);
+        break;
+      }
     }
 
-    // Parse ride type
-    if (lowerText.includes("uber x") || lowerText.includes("uberx")) {
+    // Parse ride type with more variations
+    if (processedText.match(/uber\s*x(?:\s|$)/)) {
       updates.rideType = "UberX";
-    } else if (lowerText.includes("uber xl") || lowerText.includes("uberxl")) {
+    } else if (processedText.match(/uber\s*xl|xl/)) {
       updates.rideType = "UberXL";
-    } else if (lowerText.includes("pool")) {
+    } else if (processedText.match(/pool|shared/)) {
       updates.rideType = "Uber Pool";
-    } else if (lowerText.includes("black")) {
+    } else if (processedText.match(/black|premium|luxury/)) {
       updates.rideType = "Uber Black";
     }
 
-    // Parse tips
-    const tipsMatch = lowerText.match(/tip\s*\$?(\d+(?:\.\d{2})?)/);
-    if (tipsMatch) {
-      updates.tips = parseFloat(tipsMatch[1]);
+    // Parse tips - handle multiple formats
+    const tipPatterns = [
+      /tip\s*(?:of\s*)?\$?(\d+(?:\.\d{2})?)/,
+      /tipped\s*\$?(\d+(?:\.\d{2})?)/,
+      /(\d+(?:\.\d{2})?)\s*(?:dollar|buck)s?\s*tip/,
+      /gratuity\s*(?:of\s*)?\$?(\d+(?:\.\d{2})?)/,
+    ];
+
+    for (const pattern of tipPatterns) {
+      const match = processedText.match(pattern);
+      if (match) {
+        updates.tips = parseFloat(match[1]);
+        break;
+      }
     }
 
-    // Parse duration
-    const durationMatch = lowerText.match(/(\d+)\s*minute/);
-    if (durationMatch) {
-      updates.duration = parseInt(durationMatch[1]);
+    // Parse duration - handle multiple formats
+    const durationPatterns = [
+      /(\d+)\s*minutes?/,
+      /took\s*(\d+)\s*minutes?/,
+      /duration\s*(?:of\s*)?(\d+)\s*minutes?/,
+      /(\d+)\s*mins?/,
+      /lasted\s*(\d+)\s*minutes?/,
+    ];
+
+    for (const pattern of durationPatterns) {
+      const match = processedText.match(pattern);
+      if (match) {
+        updates.duration = parseInt(match[1]);
+        break;
+      }
     }
 
-    // Parse distance
-    const distanceMatch = lowerText.match(/(\d+(?:\.\d)?)\s*mile/);
-    if (distanceMatch) {
-      updates.distance = parseFloat(distanceMatch[1]);
+    // Parse distance - handle multiple formats
+    const distancePatterns = [
+      /(\d+(?:\.\d)?)\s*miles?/,
+      /distance\s*(?:of\s*)?(\d+(?:\.\d)?)\s*miles?/,
+      /(\d+(?:\.\d)?)\s*mi/,
+      /drove\s*(\d+(?:\.\d)?)\s*miles?/,
+    ];
+
+    for (const pattern of distancePatterns) {
+      const match = processedText.match(pattern);
+      if (match) {
+        updates.distance = parseFloat(match[1]);
+        break;
+      }
     }
 
-    // Parse locations (basic implementation)
-    if (lowerText.includes("from") && lowerText.includes("to")) {
+    // Parse locations with better handling
+    const locationPatterns = [
+      {
+        pickup:
+          /(?:from|starting\s*(?:at|from))\s*([^,]+?)(?:\s*to\s*|\s*,\s*(?:to\s*)?)/i,
+        dropoff: /(?:to|ending\s*(?:at|in)|destination)\s*([^,]+?)(?:\s*,|$)/i,
+      },
+      {
+        pickup: /pickup\s*(?:at|from)?\s*([^,]+?)(?:\s*,|$)/i,
+        dropoff: /(?:drop\s*off|dropoff)\s*(?:at|to)?\s*([^,]+?)(?:\s*,|$)/i,
+      },
+    ];
+
+    // Try the "from X to Y" pattern first
+    if (
+      text.toLowerCase().includes("from") &&
+      text.toLowerCase().includes("to")
+    ) {
       const fromIndex = lowerText.indexOf("from");
-      const toIndex = lowerText.indexOf("to");
+      const toIndex = lowerText.lastIndexOf("to");
       if (fromIndex < toIndex) {
         const pickup = text
           .substring(fromIndex + 4, toIndex)
           .trim()
-          .replace(/^(.*?)(from|to).*/, "$1")
+          .replace(/[,.]$/, "")
           .trim();
-        const dropoff = text.substring(toIndex + 2).trim();
+        const dropoff = text
+          .substring(toIndex + 2)
+          .trim()
+          .replace(/[,.]$/, "")
+          .trim()
+          .split(/[,.]|uber|dollar|surge|tip|minute|mile/i)[0]
+          .trim();
+
         if (pickup) updates.pickupLocation = pickup;
         if (dropoff) updates.dropoffLocation = dropoff;
+      }
+    } else {
+      // Try other patterns
+      for (const patterns of locationPatterns) {
+        const pickupMatch = text.match(patterns.pickup);
+        const dropoffMatch = text.match(patterns.dropoff);
+
+        if (pickupMatch && pickupMatch[1].trim()) {
+          updates.pickupLocation = pickupMatch[1].trim().replace(/[,.]$/, "");
+        }
+        if (dropoffMatch && dropoffMatch[1].trim()) {
+          updates.dropoffLocation = dropoffMatch[1].trim().replace(/[,.]$/, "");
+        }
+
+        if (pickupMatch || dropoffMatch) break;
       }
     }
 
     updates.source = "voice";
+
+    // Show what was parsed
+    const parsedFields = Object.keys(updates).filter(
+      (key) => key !== "source" && updates[key as keyof Ride],
+    );
+    if (parsedFields.length > 0) {
+      console.log("Parsed from voice:", updates);
+    }
+
     setCurrentRide((prev) => ({ ...prev, ...updates }));
   };
 
