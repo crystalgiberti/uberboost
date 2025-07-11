@@ -1,4 +1,55 @@
-// Simplified API service to avoid body stream issues
+// Ultra-safe API service to completely avoid body stream issues
+
+async function safeApiCall(
+  url: string,
+  options: RequestInit = {},
+): Promise<any> {
+  console.log(`Making API call to: ${url}`);
+  console.log("Options:", {
+    ...options,
+    body: options.body ? "[DATA]" : undefined,
+  });
+
+  try {
+    const response = await fetch(url, options);
+    console.log(`Response received: ${response.status} ${response.statusText}`);
+
+    // Create a response reader that handles everything safely
+    const responseReader = new Promise(async (resolve, reject) => {
+      try {
+        // Read the entire response as an ArrayBuffer to avoid any stream issues
+        const arrayBuffer = await response.arrayBuffer();
+        const text = new TextDecoder().decode(arrayBuffer);
+
+        console.log("Raw response text:", text);
+
+        resolve({
+          ok: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+          text: text,
+          data: text
+            ? (() => {
+                try {
+                  return JSON.parse(text);
+                } catch {
+                  return null;
+                }
+              })()
+            : null,
+        });
+      } catch (error) {
+        reject(error);
+      }
+    });
+
+    const result = await responseReader;
+    return result;
+  } catch (error) {
+    console.error("API call failed:", error);
+    throw error;
+  }
+}
 
 export const simpleRegister = async (userData: {
   email: string;
@@ -8,11 +59,11 @@ export const simpleRegister = async (userData: {
   phone?: string;
   city?: string;
 }) => {
-  try {
-    console.log("Starting registration with simple API...");
-    console.log("Data:", { ...userData, password: "[HIDDEN]" });
+  console.log("=== STARTING REGISTRATION ===");
+  console.log("User data:", { ...userData, password: "[HIDDEN]" });
 
-    const response = await fetch("/api/auth/register", {
+  try {
+    const result = await safeApiCall("/api/auth/register", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -20,44 +71,39 @@ export const simpleRegister = async (userData: {
       body: JSON.stringify(userData),
     });
 
-    console.log("Response status:", response.status);
-    console.log("Response ok:", response.ok);
+    console.log("Registration response:", {
+      ok: result.ok,
+      status: result.status,
+      hasData: !!result.data,
+    });
 
-    // Read the response body as text first
-    const responseText = await response.text();
-    console.log("Response body:", responseText);
-
-    if (!response.ok) {
-      let errorMessage = `Registration failed (${response.status})`;
-
-      try {
-        if (responseText) {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.error || errorMessage;
-        }
-      } catch {
-        errorMessage = responseText || errorMessage;
-      }
-
+    if (!result.ok) {
+      const errorMessage =
+        result.data?.error ||
+        result.text ||
+        `Registration failed (${result.status})`;
+      console.error("Registration failed:", errorMessage);
       throw new Error(errorMessage);
     }
 
-    // Parse the successful response
-    const data = JSON.parse(responseText);
-    console.log("Registration successful!");
+    if (!result.data) {
+      throw new Error("No data received from server");
+    }
 
-    return data;
+    console.log("✅ Registration successful!");
+    return result.data;
   } catch (error) {
-    console.error("Registration error:", error);
+    console.error("❌ Registration error:", error);
     throw error;
   }
 };
 
 export const simpleLogin = async (email: string, password: string) => {
-  try {
-    console.log("Starting login with simple API...");
+  console.log("=== STARTING LOGIN ===");
+  console.log("Email:", email);
 
-    const response = await fetch("/api/auth/login", {
+  try {
+    const result = await safeApiCall("/api/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -65,34 +111,49 @@ export const simpleLogin = async (email: string, password: string) => {
       body: JSON.stringify({ email, password }),
     });
 
-    console.log("Login response status:", response.status);
+    console.log("Login response:", {
+      ok: result.ok,
+      status: result.status,
+      hasData: !!result.data,
+    });
 
-    // Read the response body as text first
-    const responseText = await response.text();
-    console.log("Login response body:", responseText);
-
-    if (!response.ok) {
-      let errorMessage = `Login failed (${response.status})`;
-
-      try {
-        if (responseText) {
-          const errorData = JSON.parse(responseText);
-          errorMessage = errorData.error || errorMessage;
-        }
-      } catch {
-        errorMessage = responseText || errorMessage;
-      }
-
+    if (!result.ok) {
+      const errorMessage =
+        result.data?.error || result.text || `Login failed (${result.status})`;
+      console.error("Login failed:", errorMessage);
       throw new Error(errorMessage);
     }
 
-    // Parse the successful response
-    const data = JSON.parse(responseText);
-    console.log("Login successful!");
+    if (!result.data) {
+      throw new Error("No data received from server");
+    }
 
-    return data;
+    console.log("✅ Login successful!");
+    return result.data;
   } catch (error) {
-    console.error("Login error:", error);
+    console.error("❌ Login error:", error);
     throw error;
+  }
+};
+
+// Test function to verify API connectivity
+export const testApiConnection = async () => {
+  console.log("=== TESTING API CONNECTION ===");
+
+  try {
+    const result = await safeApiCall("/api/ping");
+
+    console.log("Ping result:", result);
+
+    if (result.ok && result.data) {
+      console.log("✅ API connection working!");
+      return true;
+    } else {
+      console.log("❌ API connection failed");
+      return false;
+    }
+  } catch (error) {
+    console.error("❌ API connection error:", error);
+    return false;
   }
 };
