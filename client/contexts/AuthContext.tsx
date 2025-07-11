@@ -70,7 +70,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     city?: string;
   }) => {
     try {
+      console.log("Attempting registration with:", {
+        ...userData,
+        password: "[HIDDEN]",
+      });
       const response = await apiService.register(userData);
+      console.log("Registration successful");
       setUser(response.user);
     } catch (error) {
       console.error("Registration failed:", error);
