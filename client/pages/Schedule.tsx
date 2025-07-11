@@ -263,6 +263,24 @@ export default function Schedule() {
     return now > itemTime;
   };
 
+  const isCurrentTimeSlot = (timeStr: string) => {
+    const now = currentTime;
+    const [time, period] = timeStr.split(" ");
+    const [hours, minutes] = time.split(":").map(Number);
+
+    let hour24 = hours;
+    if (period === "PM" && hours !== 12) hour24 += 12;
+    if (period === "AM" && hours === 12) hour24 = 0;
+
+    const itemTime = new Date(now);
+    itemTime.setHours(hour24, minutes, 0, 0);
+
+    const endTime = new Date(itemTime);
+    endTime.setHours(endTime.getHours() + 1); // Assume 1 hour slots
+
+    return now >= itemTime && now <= endTime;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-florida-sky via-background to-florida-ocean/10 pb-20">
       {/* Header */}
