@@ -24,6 +24,11 @@ export default function Schedule() {
   const navigate = useNavigate();
   const [selectedDay, setSelectedDay] = useState("today");
   const [autoSchedule, setAutoSchedule] = useState(true);
+  const [isScheduleActive, setIsScheduleActive] = useState(false);
+  const [currentScheduleItem, setCurrentScheduleItem] = useState<any>(null);
+  const [scheduledStartTime, setScheduledStartTime] = useState<Date | null>(
+    null,
+  );
 
   const daysOfWeek = [
     { id: "today", label: "Today", date: "Dec 15" },
