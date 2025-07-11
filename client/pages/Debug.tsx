@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { directRegister, directLogin, directPing } from "../services/directApi";
+import { atomicRegister, atomicLogin, atomicPing } from "../services/atomicApi";
+import { debugFetch, testMinimalAuth } from "../services/debugFetch";
 
 export default function Debug() {
   const [email, setEmail] = useState("test@example.com");
