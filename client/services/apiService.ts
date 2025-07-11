@@ -1,0 +1,271 @@
+// API Service for communicating with the backend
+class ApiService {
+  private baseUrl: string;
+  private token: string | null = null;
+
+  constructor() {
+    this.baseUrl = "/api";
+    this.token = localStorage.getItem("auth_token");
+  }
+
+  private async request(
+    endpoint: string,
+    options: RequestInit = {},
+  ): Promise<any> {
+    const url = `${this.baseUrl}${endpoint}`;
+    const headers: HeadersInit = {
+      "Content-Type": "application/json",
+      ...options.headers,
+    };
+
+    if (this.token) {
+      headers.Authorization = `Bearer ${this.token}`;
+    }
+
+    const response = await fetch(url, {
+      ...options,
+      headers,
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Request failed");
+    }
+
+    return data;
+  }
+
+  // Authentication
+  async register(userData: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+    phone?: string;
+    city?: string;
+  }) {
+    const data = await this.request("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(userData),
+    });
+
+    this.token = data.token;
+    localStorage.setItem("auth_token", data.token);
+    return data;
+  }
+
+  async login(credentials: { email: string; password: string }) {
+    const data = await this.request("/auth/login", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    });
+
+    this.token = data.token;
+    localStorage.setItem("auth_token", data.token);
+    return data;
+  }
+
+  async logout() {
+    try {
+      await this.request("/auth/logout", { method: "POST" });
+    } catch (error) {
+      console.warn("Logout request failed:", error);
+    } finally {
+      this.token = null;
+      localStorage.removeItem("auth_token");
+    }
+  }
+
+  async getMe() {
+    return this.request("/auth/me");
+  }
+
+  // User Profile & Settings
+  async getProfile() {
+    return this.request("/users/profile");
+  }
+
+  async updateProfile(profileData: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
+    city?: string;
+  }) {
+    return this.request("/users/profile", {
+      method: "PUT",
+      body: JSON.stringify(profileData),
+    });
+  }
+
+  async getSettings() {
+    return this.request("/users/settings");
+  }
+
+  async updateSettings(settings: {
+    dailyGoal?: number;
+    preferredSurgeMin?: number;
+    maxDriveDistance?: number;
+    notificationsEnabled?: boolean;
+    voiceEnabled?: boolean;
+    darkMode?: boolean;
+    settingsJson?: Record<string, any>;
+  }) {
+    return this.request("/users/settings", {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    });
+  }
+
+  async getDashboard() {
+    return this.request("/users/dashboard");
+  }
+
+  // Rides
+  async createRide(rideData: {
+    vehicleId?: string;
+    date: string;
+    time: string;
+    pickupLocation: string;
+    dropoffLocation: string;
+    rideType: "UberX" | "UberXL" | "Uber Pool" | "Uber Black";
+    earnings: number;
+    surge?: number;
+    duration?: number;
+    distance?: number;
+    tips?: number;
+    notes?: string;
+    source?: "manual" | "voice" | "import";
+  }) {
+    return this.request("/rides", {
+      method: "POST",
+      body: JSON.stringify(rideData),
+    });
+  }
+
+  async getRides(page = 1, limit = 50) {
+    return this.request(`/rides?page=${page}&limit=${limit}`);
+  }
+
+  async getRideStats(period = "30") {
+    return this.request(`/rides/stats?period=${period}`);
+  }
+
+  async deleteRide(rideId: string) {
+    return this.request(`/rides/${rideId}`, { method: "DELETE" });
+  }
+
+  async createBulkRides(rides: any[]) {
+    return this.request("/rides/bulk", {
+      method: "POST",
+      body: JSON.stringify(rides),
+    });
+  }
+
+  async exportRides(format = "csv") {
+    const response = await fetch(
+      `${this.baseUrl}/rides/export?format=${format}`,
+      {
+        headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error("Export failed");
+    }
+
+    if (format === "csv") {
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `uber-rides-${new Date().toISOString().split("T")[0]}.csv`;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } else {
+      return response.json();
+    }
+  }
+
+  // Vehicles
+  async createVehicle(vehicleData: {
+    year: number;
+    make: string;
+    model: string;
+    color: string;
+    licensePlate: string;
+    mileage?: number;
+    fuelType?: "gas" | "hybrid" | "electric";
+    mpg?: number;
+    isActive?: boolean;
+  }) {
+    return this.request("/vehicles", {
+      method: "POST",
+      body: JSON.stringify(vehicleData),
+    });
+  }
+
+  async getVehicles() {
+    return this.request("/vehicles");
+  }
+
+  async updateVehicle(vehicleId: string, vehicleData: any) {
+    return this.request(`/vehicles/${vehicleId}`, {
+      method: "PUT",
+      body: JSON.stringify(vehicleData),
+    });
+  }
+
+  async deleteVehicle(vehicleId: string) {
+    return this.request(`/vehicles/${vehicleId}`, { method: "DELETE" });
+  }
+
+  async getVehicleStats(vehicleId: string) {
+    return this.request(`/vehicles/${vehicleId}/stats`);
+  }
+
+  // Maintenance
+  async createMaintenanceRecord(
+    vehicleId: string,
+    maintenanceData: {
+      type: "oil_change" | "tire_rotation" | "inspection" | "repair" | "other";
+      description: string;
+      date: string;
+      mileage: number;
+      cost: number;
+      location: string;
+      nextDue?: number;
+    },
+  ) {
+    return this.request(`/vehicles/${vehicleId}/maintenance`, {
+      method: "POST",
+      body: JSON.stringify(maintenanceData),
+    });
+  }
+
+  async getMaintenanceRecords(vehicleId: string) {
+    return this.request(`/vehicles/${vehicleId}/maintenance`);
+  }
+
+  // Utility methods
+  isAuthenticated(): boolean {
+    return !!this.token;
+  }
+
+  getToken(): string | null {
+    return this.token;
+  }
+
+  setToken(token: string) {
+    this.token = token;
+    localStorage.setItem("auth_token", token);
+  }
+
+  clearToken() {
+    this.token = null;
+    localStorage.removeItem("auth_token");
+  }
+}
+
+export const apiService = new ApiService();
+export default apiService;
