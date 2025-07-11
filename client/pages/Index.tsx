@@ -233,7 +233,16 @@ export default function Index() {
             <Button
               variant="ghost"
               size="sm"
+              onClick={() => navigate("/help")}
+              title="Help & Support"
+            >
+              <HelpCircle className="w-5 h-5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => navigate("/notifications")}
+              title="Notifications"
             >
               <Bell className="w-5 h-5" />
             </Button>
@@ -241,6 +250,7 @@ export default function Index() {
               variant="ghost"
               size="sm"
               onClick={() => navigate("/settings")}
+              title="Settings"
             >
               <Settings className="w-5 h-5" />
             </Button>
@@ -248,6 +258,7 @@ export default function Index() {
               variant="ghost"
               size="sm"
               onClick={() => navigate("/profile")}
+              title="Profile"
             >
               <User className="w-5 h-5" />
             </Button>
