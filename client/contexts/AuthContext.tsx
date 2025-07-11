@@ -54,7 +54,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      const response = await apiService.login({ email, password });
+      console.log("Using simple login API...");
+      const response = await simpleLogin(email, password);
+
+      // Set token in localStorage and API service
+      if (response.token) {
+        localStorage.setItem("auth_token", response.token);
+        apiService.setToken(response.token);
+      }
+
       setUser(response.user);
     } catch (error) {
       console.error("Login failed:", error);
@@ -71,11 +79,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     city?: string;
   }) => {
     try {
+      console.log("Using simple register API...");
       console.log("Attempting registration with:", {
         ...userData,
         password: "[HIDDEN]",
       });
-      const response = await apiService.register(userData);
+      const response = await simpleRegister(userData);
+
+      // Set token in localStorage and API service
+      if (response.token) {
+        localStorage.setItem("auth_token", response.token);
+        apiService.setToken(response.token);
+      }
+
       console.log("Registration successful");
       setUser(response.user);
     } catch (error) {
