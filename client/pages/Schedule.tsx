@@ -429,14 +429,29 @@ export default function Schedule() {
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <span className="font-semibold text-sm">
+                        <span
+                          className={`font-semibold text-sm ${item.isPassed ? "text-gray-500" : ""}`}
+                        >
                           {item.time}
                         </span>
-                        {item.surge && (
+                        {item.isPassed && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs text-gray-500 border-gray-400"
+                          >
+                            Passed
+                          </Badge>
+                        )}
+                        {!item.isPassed && item.surge && (
                           <Badge
                             className={`${getSurgeColor(item.surge)} text-white text-xs`}
                           >
                             {item.surge}
+                          </Badge>
+                        )}
+                        {!item.isPassed && isCurrentTimeSlot(item.time) && (
+                          <Badge className="bg-green-500 text-white text-xs animate-pulse">
+                            Now
                           </Badge>
                         )}
                       </div>
