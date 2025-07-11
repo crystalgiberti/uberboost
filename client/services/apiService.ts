@@ -174,27 +174,40 @@ class ApiService {
   }
 
   async exportRides(format = "csv") {
-    const response = await fetch(
-      `${this.baseUrl}/rides/export?format=${format}`,
-      {
-        headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
-      },
-    );
+    try {
+      const response = await fetch(
+        `${this.baseUrl}/rides/export?format=${format}`,
+        {
+          headers: this.token ? { Authorization: `Bearer ${this.token}` } : {},
+        },
+      );
 
-    if (!response.ok) {
-      throw new Error("Export failed");
-    }
+      if (!response.ok) {
+        // Try to get error message from response
+        try {
+          const errorData = await response.json();
+          throw new Error(errorData.error || "Export failed");
+        } catch {
+          throw new Error(`Export failed with status ${response.status}`);
+        }
+      }
 
-    if (format === "csv") {
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `uber-rides-${new Date().toISOString().split("T")[0]}.csv`;
-      a.click();
-      window.URL.revokeObjectURL(url);
-    } else {
-      return response.json();
+      if (format === "csv") {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `uber-rides-${new Date().toISOString().split("T")[0]}.csv`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      } else {
+        return response.json();
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error("Export request failed");
     }
   }
 
