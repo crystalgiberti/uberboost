@@ -47,7 +47,7 @@ export function SafeAuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const login = async (email: string, password: string) => {
-    console.log("��️ === SAFE AUTH LOGIN ===");
+    console.log("🛡️ === SAFE AUTH LOGIN ===");
     try {
       const response = await directLogin(email, password);
 
@@ -116,7 +116,7 @@ export function SafeAuthProvider({ children }: { children: React.ReactNode }) {
     login,
     register,
     logout,
-    testConnection,
+    testConnection: directPing,
   };
 
   return (
