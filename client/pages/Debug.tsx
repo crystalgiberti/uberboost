@@ -161,28 +161,28 @@ export default function Debug() {
 
           <div className="grid grid-cols-2 gap-2">
             <Button
-              onClick={testConnection}
+              onClick={testDirectConnection}
               disabled={loading}
-              variant="outline"
+              className="bg-purple-600 hover:bg-purple-700 text-white"
             >
-              Test Connection
+              Direct Ping
             </Button>
             <Button onClick={testPing} disabled={loading} variant="outline">
-              Test Ping
+              Old Ping
             </Button>
             <Button
-              onClick={testSafeRegister}
+              onClick={testDirectRegister}
               disabled={loading}
               className="bg-green-600 hover:bg-green-700 text-white"
             >
-              Safe Register
+              Direct Register
             </Button>
             <Button
-              onClick={testSafeLogin}
+              onClick={testDirectLogin}
               disabled={loading}
               className="bg-blue-600 hover:bg-blue-700 text-white"
             >
-              Safe Login
+              Direct Login
             </Button>
             <Button
               onClick={testRegister}
