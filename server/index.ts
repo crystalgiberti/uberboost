@@ -54,7 +54,28 @@ export function createServer() {
   }
 
   // Middleware
-  app.use(cors());
+  app.use(
+    cors({
+      origin: true, // Allow all origins in development
+      credentials: true,
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+      allowedHeaders: ["Content-Type", "Authorization"],
+    }),
+  );
+
+  // Request logging middleware
+  app.use((req, res, next) => {
+    console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+    console.log("Headers:", req.headers);
+    if (req.body && Object.keys(req.body).length > 0) {
+      console.log("Body:", {
+        ...req.body,
+        password: req.body.password ? "[HIDDEN]" : undefined,
+      });
+    }
+    next();
+  });
+
   app.use(express.json({ limit: "10mb" }));
   app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
