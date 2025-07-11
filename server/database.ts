@@ -119,6 +119,9 @@ export function initializeDatabase() {
   console.log("Database initialized successfully");
 }
 
+// Initialize database immediately
+initializeDatabase();
+
 // Helper functions for database operations
 export const queries = {
   // Users
