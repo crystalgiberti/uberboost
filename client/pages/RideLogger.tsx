@@ -459,16 +459,19 @@ export default function RideLogger() {
             <div className="p-4 bg-florida-sky/20 rounded-lg border border-florida-sky/30">
               <div className="flex items-center justify-between mb-2">
                 <span className="font-semibold text-florida-ocean">
-                  Voice Entry
+                  🎤 Voice Entry
                 </span>
                 <Button
                   variant={isRecording ? "destructive" : "default"}
                   size="sm"
                   onClick={isRecording ? stopRecording : startRecording}
+                  disabled={!speechSupported}
                   className={
                     isRecording
                       ? "bg-red-500 hover:bg-red-600"
-                      : "bg-florida-ocean hover:bg-florida-ocean-dark"
+                      : speechSupported
+                        ? "bg-florida-ocean hover:bg-florida-ocean-dark"
+                        : "bg-gray-400 cursor-not-allowed"
                   }
                 >
                   {isRecording ? (
@@ -476,16 +479,68 @@ export default function RideLogger() {
                   ) : (
                     <Mic className="w-4 h-4 mr-1" />
                   )}
-                  {isRecording ? "Stop" : "Start"}
+                  {isRecording ? "Stop Recording" : "Start Recording"}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground mb-2">
-                Say: "From downtown to airport, UberX, $25, 1.5x surge, 20
-                minutes, $5 tip"
-              </p>
-              {transcript && (
-                <div className="text-sm bg-white p-2 rounded border">
-                  <strong>Heard:</strong> {transcript}
+
+              {speechSupported ? (
+                <>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    📝 Try saying: "From downtown to airport, UberX, twenty five
+                    dollars, one point five times surge, twenty minutes, five
+                    dollar tip"
+                  </p>
+                  <div className="space-y-2">
+                    {speechError && (
+                      <div className="text-sm bg-red-50 border border-red-200 text-red-700 p-2 rounded">
+                        <strong>Error:</strong> {speechError}
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="ml-2 h-auto p-0 text-red-700"
+                          onClick={() => setSpeechError(null)}
+                        >
+                          Dismiss
+                        </Button>
+                      </div>
+                    )}
+
+                    {isRecording && (
+                      <div className="text-sm bg-green-50 border border-green-200 text-green-700 p-2 rounded">
+                        <div className="flex items-center gap-2">
+                          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                          <strong>Listening...</strong>
+                        </div>
+                        {interimTranscript && (
+                          <div className="mt-1 text-gray-600 italic">
+                            "{interimTranscript}"
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {transcript && (
+                      <div className="text-sm bg-white p-2 rounded border">
+                        <strong>Captured:</strong> {transcript}
+                        <Button
+                          variant="link"
+                          size="sm"
+                          className="ml-2 h-auto p-0"
+                          onClick={() => setTranscript("")}
+                        >
+                          Clear
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="text-sm bg-orange-50 border border-orange-200 text-orange-700 p-2 rounded">
+                  <strong>⚠️ Voice Recognition Not Available</strong>
+                  <p className="text-xs mt-1">
+                    {speechError ||
+                      "Please use Chrome, Safari, or Edge browser for voice features."}
+                  </p>
                 </div>
               )}
             </div>
