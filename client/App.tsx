@@ -65,6 +65,14 @@ function AppRoutes() {
       <Route path="/privacy" element={<Privacy />} />
       <Route path="/help" element={<Help />} />
       <Route path="/debug" element={<Debug />} />
+      <Route
+        path="/auth-test"
+        element={
+          <SafeAuthProvider>
+            <AuthTest />
+          </SafeAuthProvider>
+        }
+      />
 
       {/* Protected routes */}
       <Route
