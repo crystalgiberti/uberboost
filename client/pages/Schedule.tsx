@@ -399,13 +399,15 @@ export default function Schedule() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            {todaySchedule.map((item, index) => (
+            {getScheduleForDay(selectedDay).map((item, index) => (
               <div
                 key={index}
-                className={`p-4 rounded-lg border ${
-                  item.type === "drive"
-                    ? "bg-white/80 border-florida-ocean/20"
-                    : "bg-gray-50/80 border-gray-200"
+                className={`p-4 rounded-lg border transition-all ${
+                  item.isPassed
+                    ? "bg-gray-100/60 border-gray-300 opacity-70"
+                    : item.type === "drive"
+                      ? "bg-white/80 border-florida-ocean/20"
+                      : "bg-gray-50/80 border-gray-200"
                 }`}
               >
                 <div className="flex items-start justify-between">
