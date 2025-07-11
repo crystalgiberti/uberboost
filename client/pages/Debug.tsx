@@ -76,6 +76,48 @@ export default function Debug() {
     setLoading(false);
   };
 
+  const testSafeRegister = async () => {
+    setLoading(true);
+    try {
+      const result = await simpleRegister({
+        email,
+        password,
+        firstName,
+        lastName,
+      });
+      setResult(
+        `✅ Safe Registration Success!\n${JSON.stringify(result, null, 2)}`,
+      );
+    } catch (error: any) {
+      setResult(`❌ Safe Registration Failed: ${error.message}`);
+    }
+    setLoading(false);
+  };
+
+  const testSafeLogin = async () => {
+    setLoading(true);
+    try {
+      const result = await simpleLogin(email, password);
+      setResult(`✅ Safe Login Success!\n${JSON.stringify(result, null, 2)}`);
+    } catch (error: any) {
+      setResult(`❌ Safe Login Failed: ${error.message}`);
+    }
+    setLoading(false);
+  };
+
+  const testConnection = async () => {
+    setLoading(true);
+    try {
+      const isConnected = await testApiConnection();
+      setResult(
+        isConnected ? "✅ API Connection Working!" : "❌ API Connection Failed",
+      );
+    } catch (error: any) {
+      setResult(`❌ Connection Test Failed: ${error.message}`);
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-florida-sky via-background to-florida-ocean/10 p-4">
       <Card>
