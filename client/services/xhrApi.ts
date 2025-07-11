@@ -9,8 +9,17 @@ interface XHRResponse {
 class XHRClient {
   private baseUrl: string;
 
-  constructor(baseUrl: string = "http://localhost:5000") {
-    this.baseUrl = baseUrl;
+  constructor(baseUrl?: string) {
+    // Auto-detect the base URL from current location
+    if (typeof window !== "undefined") {
+      const currentUrl = new URL(window.location.href);
+      // Use the same origin but different port for dev server
+      this.baseUrl =
+        baseUrl || `${currentUrl.protocol}//${currentUrl.hostname}:5000`;
+    } else {
+      this.baseUrl = baseUrl || "http://localhost:5000";
+    }
+    console.log("XHR Client initialized with baseUrl:", this.baseUrl);
   }
 
   private makeRequest(
@@ -33,6 +42,21 @@ class XHRClient {
 
       xhr.onreadystatechange = () => {
         if (xhr.readyState === XMLHttpRequest.DONE) {
+          console.log(`XHR Response for ${method} ${fullUrl}:`, {
+            status: xhr.status,
+            statusText: xhr.statusText,
+            responseText: xhr.responseText,
+            readyState: xhr.readyState,
+          });
+
+          // Handle CORS/network errors (status 0)
+          if (xhr.status === 0) {
+            const errorMsg = `Network error or CORS issue when accessing ${fullUrl}. Check if server is running and CORS is configured properly.`;
+            console.error(errorMsg);
+            reject(new Error(errorMsg));
+            return;
+          }
+
           let responseData;
 
           try {
@@ -54,26 +78,43 @@ class XHRClient {
           if (response.ok) {
             resolve(response);
           } else {
-            reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+            reject(
+              new Error(
+                `HTTP ${xhr.status}: ${xhr.statusText}${responseData ? ` - ${JSON.stringify(responseData)}` : ""}`,
+              ),
+            );
           }
         }
       };
 
-      xhr.onerror = () => {
-        reject(new Error("Network request failed"));
+      xhr.onerror = (event) => {
+        console.error(`XHR Error for ${method} ${fullUrl}:`, event);
+        reject(
+          new Error(
+            `Network request failed for ${fullUrl}. Check CORS configuration and server availability.`,
+          ),
+        );
       };
 
       xhr.ontimeout = () => {
-        reject(new Error("Request timeout"));
+        console.error(`XHR Timeout for ${method} ${fullUrl}`);
+        reject(new Error(`Request timeout for ${fullUrl}`));
       };
 
       xhr.timeout = 10000; // 10 second timeout
 
       // Send request
-      if (data) {
-        xhr.send(JSON.stringify(data));
-      } else {
-        xhr.send();
+      console.log(`Sending XHR ${method} to ${fullUrl}`, data ? { data } : {});
+
+      try {
+        if (data) {
+          xhr.send(JSON.stringify(data));
+        } else {
+          xhr.send();
+        }
+      } catch (error) {
+        console.error(`Failed to send XHR request:`, error);
+        reject(error);
       }
     });
   }
