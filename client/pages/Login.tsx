@@ -50,6 +50,8 @@ export default function Login() {
         if (!formData.firstName || !formData.lastName) {
           throw new Error("First name and last name are required");
         }
+
+        console.log("Submitting registration form");
         await register({
           email: formData.email,
           password: formData.password,
@@ -58,11 +60,24 @@ export default function Login() {
           phone: formData.phone || undefined,
           city: formData.city || undefined,
         });
+        console.log("Registration completed successfully");
       } else {
+        console.log("Submitting login form");
         await login(formData.email, formData.password);
+        console.log("Login completed successfully");
       }
     } catch (error: any) {
-      setError(error.message || "Authentication failed");
+      console.error("Form submission error:", error);
+
+      // Extract meaningful error message
+      let errorMessage = "Authentication failed";
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
