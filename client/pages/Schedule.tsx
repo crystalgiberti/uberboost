@@ -29,6 +29,8 @@ export default function Schedule() {
   const [scheduledStartTime, setScheduledStartTime] = useState<Date | null>(
     null,
   );
+  const [currentTime, setCurrentTime] = useState(new Date());
+  const [currentWeek, setCurrentWeek] = useState(new Date());
 
   const daysOfWeek = [
     { id: "today", label: "Today", date: "Dec 15" },
