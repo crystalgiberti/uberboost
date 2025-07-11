@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import apiService from "../services/apiService";
-import { simpleRegister, simpleLogin } from "../services/simpleApiService";
+import { directRegister, directLogin } from "../services/directApi";
 
 interface User {
   id: string;
