@@ -161,15 +161,40 @@ export default function Debug() {
             </div>
           </div>
 
-          <div className="flex gap-4">
-            <Button onClick={testPing} disabled={loading}>
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              onClick={testConnection}
+              disabled={loading}
+              variant="outline"
+            >
+              Test Connection
+            </Button>
+            <Button onClick={testPing} disabled={loading} variant="outline">
               Test Ping
             </Button>
-            <Button onClick={testRegister} disabled={loading}>
-              Test Register
+            <Button
+              onClick={testSafeRegister}
+              disabled={loading}
+              className="bg-green-600 hover:bg-green-700 text-white"
+            >
+              Safe Register
             </Button>
-            <Button onClick={testLogin} disabled={loading}>
-              Test Login
+            <Button
+              onClick={testSafeLogin}
+              disabled={loading}
+              className="bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              Safe Login
+            </Button>
+            <Button
+              onClick={testRegister}
+              disabled={loading}
+              variant="secondary"
+            >
+              Old Register
+            </Button>
+            <Button onClick={testLogin} disabled={loading} variant="secondary">
+              Old Login
             </Button>
           </div>
 
