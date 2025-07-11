@@ -80,11 +80,20 @@ export const handleRegister: RequestHandler = async (req, res) => {
     });
   } catch (error) {
     console.error("Registration error:", error);
+
     if (error instanceof z.ZodError) {
+      console.log("Validation error details:", error.errors);
       return res
         .status(400)
         .json({ error: "Invalid input", details: error.errors });
     }
+
+    // Handle database errors specifically
+    if (error && typeof error === "object" && "code" in error) {
+      console.error("Database error:", error);
+      return res.status(500).json({ error: "Database error occurred" });
+    }
+
     res.status(500).json({ error: "Registration failed" });
   }
 };
