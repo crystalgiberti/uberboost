@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import apiService from "../services/apiService";
-import { directRegister, directLogin } from "../services/directApi";
+import { atomicRegister, atomicLogin } from "../services/atomicApi";
+import { debugFetch, testMinimalAuth } from "../services/debugFetch";
 
 interface User {
   id: string;
