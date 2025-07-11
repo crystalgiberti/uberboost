@@ -72,44 +72,46 @@ export default function Debug() {
     setLoading(false);
   };
 
-  const testSafeRegister = async () => {
+  const testDirectRegister = async () => {
     setLoading(true);
     try {
-      const result = await simpleRegister({
+      const result = await directRegister({
         email,
         password,
         firstName,
         lastName,
       });
       setResult(
-        `✅ Safe Registration Success!\n${JSON.stringify(result, null, 2)}`,
+        `✅ Direct Registration Success!\n${JSON.stringify(result, null, 2)}`,
       );
     } catch (error: any) {
-      setResult(`❌ Safe Registration Failed: ${error.message}`);
+      setResult(`❌ Direct Registration Failed: ${error.message}`);
     }
     setLoading(false);
   };
 
-  const testSafeLogin = async () => {
+  const testDirectLogin = async () => {
     setLoading(true);
     try {
-      const result = await simpleLogin(email, password);
-      setResult(`✅ Safe Login Success!\n${JSON.stringify(result, null, 2)}`);
+      const result = await directLogin(email, password);
+      setResult(`✅ Direct Login Success!\n${JSON.stringify(result, null, 2)}`);
     } catch (error: any) {
-      setResult(`❌ Safe Login Failed: ${error.message}`);
+      setResult(`❌ Direct Login Failed: ${error.message}`);
     }
     setLoading(false);
   };
 
-  const testConnection = async () => {
+  const testDirectConnection = async () => {
     setLoading(true);
     try {
-      const isConnected = await testApiConnection();
+      const isConnected = await directPing();
       setResult(
-        isConnected ? "✅ API Connection Working!" : "❌ API Connection Failed",
+        isConnected
+          ? "✅ Direct API Connection Working!"
+          : "❌ Direct API Connection Failed",
       );
     } catch (error: any) {
-      setResult(`❌ Connection Test Failed: ${error.message}`);
+      setResult(`❌ Direct Connection Test Failed: ${error.message}`);
     }
     setLoading(false);
   };
