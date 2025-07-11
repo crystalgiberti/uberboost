@@ -23,32 +23,27 @@ export const simpleRegister = async (userData: {
     console.log("Response status:", response.status);
     console.log("Response ok:", response.ok);
 
-    // Clone the response to avoid body stream issues
-    const responseClone = response.clone();
+    // Read the response body as text first
+    const responseText = await response.text();
+    console.log("Response body:", responseText);
 
     if (!response.ok) {
       let errorMessage = `Registration failed (${response.status})`;
 
       try {
-        const errorText = await responseClone.text();
-        console.log("Error response body:", errorText);
-
-        if (errorText) {
-          try {
-            const errorData = JSON.parse(errorText);
-            errorMessage = errorData.error || errorMessage;
-          } catch {
-            errorMessage = errorText || errorMessage;
-          }
+        if (responseText) {
+          const errorData = JSON.parse(responseText);
+          errorMessage = errorData.error || errorMessage;
         }
-      } catch (readError) {
-        console.log("Could not read error response:", readError);
+      } catch {
+        errorMessage = responseText || errorMessage;
       }
 
       throw new Error(errorMessage);
     }
 
-    const data = await response.json();
+    // Parse the successful response
+    const data = JSON.parse(responseText);
     console.log("Registration successful!");
 
     return data;
