@@ -118,6 +118,60 @@ export default function Debug() {
     setLoading(false);
   };
 
+  const testAtomicRegister = async () => {
+    setLoading(true);
+    try {
+      const result = await atomicRegister({
+        email,
+        password,
+        firstName,
+        lastName,
+      });
+      setResult(
+        `✅ Atomic Registration Success!\n${JSON.stringify(result, null, 2)}`,
+      );
+    } catch (error: any) {
+      setResult(`❌ Atomic Registration Failed: ${error.message}`);
+    }
+    setLoading(false);
+  };
+
+  const testAtomicLogin = async () => {
+    setLoading(true);
+    try {
+      const result = await atomicLogin(email, password);
+      setResult(`✅ Atomic Login Success!\n${JSON.stringify(result, null, 2)}`);
+    } catch (error: any) {
+      setResult(`❌ Atomic Login Failed: ${error.message}`);
+    }
+    setLoading(false);
+  };
+
+  const testDebugFetch = async () => {
+    setLoading(true);
+    try {
+      setResult(
+        "Running debug fetch tests...\n(Check console for detailed output)",
+      );
+      await debugFetch();
+      setResult("✅ Debug fetch tests completed - check console for details");
+    } catch (error: any) {
+      setResult(`❌ Debug fetch failed: ${error.message}`);
+    }
+    setLoading(false);
+  };
+
+  const testMinimalAuthTest = async () => {
+    setLoading(true);
+    try {
+      const result = await testMinimalAuth();
+      setResult(`Minimal Auth Test:\n${JSON.stringify(result, null, 2)}`);
+    } catch (error: any) {
+      setResult(`❌ Minimal Auth Test Failed: ${error.message}`);
+    }
+    setLoading(false);
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-florida-sky via-background to-florida-ocean/10 p-4">
       <Card>
