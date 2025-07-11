@@ -1,213 +1,208 @@
-// XHR-based API to completely bypass fetch interference
+interface XHRResponse {
+  ok: boolean;
+  status: number;
+  statusText: string;
+  data: any;
+  headers: Record<string, string>;
+}
 
-function createXHR(
-  method: string,
-  url: string,
-  data?: any,
-): Promise<{ status: number; responseText: string; ok: boolean }> {
-  return new Promise((resolve, reject) => {
-    console.log(`🔧 XHR Request: ${method} ${url}`);
+class XHRClient {
+  private baseUrl: string;
 
-    const xhr = new XMLHttpRequest();
+  constructor(baseUrl: string = "http://localhost:5000") {
+    this.baseUrl = baseUrl;
+  }
 
-    xhr.onreadystatechange = function () {
-      if (xhr.readyState === XMLHttpRequest.DONE) {
-        console.log(`🔧 XHR Response: ${xhr.status} ${xhr.statusText}`);
-        console.log(`🔧 XHR Response text length: ${xhr.responseText.length}`);
+  private makeRequest(
+    method: string,
+    url: string,
+    data?: any,
+    headers: Record<string, string> = {},
+  ): Promise<XHRResponse> {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      const fullUrl = url.startsWith("http") ? url : `${this.baseUrl}${url}`;
 
-        resolve({
-          status: xhr.status,
-          responseText: xhr.responseText,
-          ok: xhr.status >= 200 && xhr.status < 300,
-        });
-      }
-    };
+      xhr.open(method, fullUrl, true);
 
-    xhr.onerror = function () {
-      console.error(`🔧 XHR Error for ${method} ${url}`);
-      reject(new Error(`XHR request failed: ${method} ${url}`));
-    };
-
-    xhr.ontimeout = function () {
-      console.error(`🔧 XHR Timeout for ${method} ${url}`);
-      reject(new Error(`XHR request timeout: ${method} ${url}`));
-    };
-
-    try {
-      xhr.open(method, url, true);
+      // Set headers
       xhr.setRequestHeader("Content-Type", "application/json");
-      xhr.timeout = 30000; // 30 second timeout
+      Object.entries(headers).forEach(([key, value]) => {
+        xhr.setRequestHeader(key, value);
+      });
 
+      xhr.onreadystatechange = () => {
+        if (xhr.readyState === XMLHttpRequest.DONE) {
+          let responseData;
+
+          try {
+            responseData = xhr.responseText
+              ? JSON.parse(xhr.responseText)
+              : null;
+          } catch (e) {
+            responseData = xhr.responseText;
+          }
+
+          const response: XHRResponse = {
+            ok: xhr.status >= 200 && xhr.status < 300,
+            status: xhr.status,
+            statusText: xhr.statusText,
+            data: responseData,
+            headers: this.parseHeaders(xhr.getAllResponseHeaders()),
+          };
+
+          if (response.ok) {
+            resolve(response);
+          } else {
+            reject(new Error(`HTTP ${xhr.status}: ${xhr.statusText}`));
+          }
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error("Network request failed"));
+      };
+
+      xhr.ontimeout = () => {
+        reject(new Error("Request timeout"));
+      };
+
+      xhr.timeout = 10000; // 10 second timeout
+
+      // Send request
       if (data) {
-        const jsonData = JSON.stringify(data);
-        console.log(`🔧 XHR Sending data length: ${jsonData.length}`);
-        xhr.send(jsonData);
+        xhr.send(JSON.stringify(data));
       } else {
         xhr.send();
       }
+    });
+  }
+
+  private parseHeaders(headerString: string): Record<string, string> {
+    const headers: Record<string, string> = {};
+    if (!headerString) return headers;
+
+    headerString.split("\r\n").forEach((line) => {
+      const parts = line.split(": ");
+      if (parts.length === 2) {
+        headers[parts[0].toLowerCase()] = parts[1];
+      }
+    });
+
+    return headers;
+  }
+
+  async get(
+    url: string,
+    headers?: Record<string, string>,
+  ): Promise<XHRResponse> {
+    return this.makeRequest("GET", url, undefined, headers);
+  }
+
+  async post(
+    url: string,
+    data?: any,
+    headers?: Record<string, string>,
+  ): Promise<XHRResponse> {
+    return this.makeRequest("POST", url, data, headers);
+  }
+
+  async put(
+    url: string,
+    data?: any,
+    headers?: Record<string, string>,
+  ): Promise<XHRResponse> {
+    return this.makeRequest("PUT", url, data, headers);
+  }
+
+  async delete(
+    url: string,
+    headers?: Record<string, string>,
+  ): Promise<XHRResponse> {
+    return this.makeRequest("DELETE", url, undefined, headers);
+  }
+}
+
+// Auth-specific API functions
+export class XHRAuthAPI {
+  private client: XHRClient;
+
+  constructor() {
+    this.client = new XHRClient();
+  }
+
+  async register(userData: {
+    email: string;
+    password: string;
+    firstName: string;
+    lastName: string;
+  }): Promise<{ user: any; token: string }> {
+    try {
+      const response = await this.client.post("/api/auth/register", userData);
+      return response.data;
     } catch (error) {
-      console.error(`🔧 XHR Setup error:`, error);
-      reject(error);
+      console.error("XHR Registration error:", error);
+      throw error;
     }
-  });
-}
+  }
 
-export async function xhrRegister(userData: {
-  email: string;
-  password: string;
-  firstName: string;
-  lastName: string;
-  phone?: string;
-  city?: string;
-}) {
-  console.log("🔧 === XHR REGISTER START ===");
-  console.log("User data:", { ...userData, password: "[HIDDEN]" });
-
-  try {
-    const result = await createXHR("POST", "/api/auth/register", userData);
-
-    console.log(`XHR Register result:`, {
-      status: result.status,
-      ok: result.ok,
-      responseLength: result.responseText.length,
-    });
-
-    if (!result.ok) {
-      let errorMessage = `Registration failed (${result.status})`;
-
-      if (result.responseText) {
-        try {
-          const errorData = JSON.parse(result.responseText);
-          if (errorData.error) {
-            errorMessage = errorData.error;
-          }
-        } catch {
-          errorMessage = result.responseText;
-        }
-      }
-
-      console.error("XHR Registration failed:", errorMessage);
-      throw new Error(errorMessage);
-    }
-
-    if (!result.responseText) {
-      throw new Error("Empty response from server");
-    }
-
-    let responseData;
+  async login(credentials: {
+    email: string;
+    password: string;
+  }): Promise<{ user: any; token: string }> {
     try {
-      responseData = JSON.parse(result.responseText);
-    } catch (parseError) {
-      console.error("XHR JSON parse failed:", parseError);
-      throw new Error("Invalid JSON response from server");
+      const response = await this.client.post("/api/auth/login", credentials);
+      return response.data;
+    } catch (error) {
+      console.error("XHR Login error:", error);
+      throw error;
     }
-
-    console.log("✅ XHR Registration successful");
-    return responseData;
-  } catch (error) {
-    console.error("❌ XHR Registration error:", error);
-    throw error;
   }
-}
 
-export async function xhrLogin(email: string, password: string) {
-  console.log("🔧 === XHR LOGIN START ===");
-  console.log("Email:", email);
-
-  try {
-    const result = await createXHR("POST", "/api/auth/login", {
-      email,
-      password,
-    });
-
-    console.log(`XHR Login result:`, {
-      status: result.status,
-      ok: result.ok,
-      responseLength: result.responseText.length,
-    });
-
-    if (!result.ok) {
-      let errorMessage = `Login failed (${result.status})`;
-
-      if (result.responseText) {
-        try {
-          const errorData = JSON.parse(result.responseText);
-          if (errorData.error) {
-            errorMessage = errorData.error;
-          }
-        } catch {
-          errorMessage = result.responseText;
-        }
-      }
-
-      console.error("XHR Login failed:", errorMessage);
-      throw new Error(errorMessage);
-    }
-
-    if (!result.responseText) {
-      throw new Error("Empty response from server");
-    }
-
-    let responseData;
+  async logout(): Promise<void> {
     try {
-      responseData = JSON.parse(result.responseText);
-    } catch (parseError) {
-      console.error("XHR JSON parse failed:", parseError);
-      throw new Error("Invalid JSON response from server");
+      const token = localStorage.getItem("authToken");
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      await this.client.post("/api/auth/logout", {}, headers);
+    } catch (error) {
+      console.error("XHR Logout error:", error);
+      throw error;
     }
-
-    console.log("✅ XHR Login successful");
-    return responseData;
-  } catch (error) {
-    console.error("❌ XHR Login error:", error);
-    throw error;
   }
-}
 
-export async function xhrPing() {
-  console.log("🔧 === XHR PING START ===");
+  async getProfile(): Promise<any> {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) throw new Error("No auth token");
 
-  try {
-    const result = await createXHR("GET", "/api/ping");
-
-    console.log(`XHR Ping result:`, {
-      status: result.status,
-      ok: result.ok,
-      responseLength: result.responseText.length,
-    });
-
-    if (result.ok) {
-      console.log("✅ XHR Ping successful");
-      return true;
-    } else {
-      console.log("❌ XHR Ping failed");
-      return false;
+      const response = await this.client.get("/api/users/profile", {
+        Authorization: `Bearer ${token}`,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("XHR Get profile error:", error);
+      throw error;
     }
-  } catch (error) {
-    console.error("❌ XHR Ping error:", error);
-    return false;
+  }
+
+  async updateProfile(profileData: any): Promise<any> {
+    try {
+      const token = localStorage.getItem("authToken");
+      if (!token) throw new Error("No auth token");
+
+      const response = await this.client.put(
+        "/api/users/profile",
+        profileData,
+        {
+          Authorization: `Bearer ${token}`,
+        },
+      );
+      return response.data;
+    } catch (error) {
+      console.error("XHR Update profile error:", error);
+      throw error;
+    }
   }
 }
 
-// Test function to verify XHR is working
-export async function testXHR() {
-  console.log("🔧 === XHR FUNCTIONALITY TEST ===");
-
-  try {
-    // Test 1: Simple GET
-    console.log("Test 1: XHR GET request");
-    const pingResult = await xhrPing();
-    console.log(`Test 1 result: ${pingResult}`);
-
-    // Test 2: POST with data
-    console.log("Test 2: XHR POST request");
-    const testResult = await createXHR("POST", "/api/test", { test: "data" });
-    console.log(`Test 2 result:`, testResult);
-
-    console.log("✅ XHR functionality test completed");
-    return true;
-  } catch (error) {
-    console.error("❌ XHR functionality test failed:", error);
-    return false;
-  }
-}
+export const xhrAuthAPI = new XHRAuthAPI();
