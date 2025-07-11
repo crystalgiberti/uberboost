@@ -36,24 +36,32 @@ class ApiService {
 
       console.log(`API Response: ${response.status} ${response.statusText}`);
 
-      // Check if response is ok first, then handle JSON parsing
+      // Read response as text first to avoid body stream issues
+      const responseText = await response.text();
+      console.log("Response body:", responseText);
+
       if (!response.ok) {
-        // Try to get error message from response, but handle parsing failures
         let errorMessage = `Request failed with status ${response.status}`;
+
         try {
-          const errorData = await response.json();
-          if (errorData && errorData.error) {
-            errorMessage = errorData.error;
+          if (responseText) {
+            const errorData = JSON.parse(responseText);
+            if (errorData && errorData.error) {
+              errorMessage = errorData.error;
+            }
           }
         } catch (jsonError) {
-          // If JSON parsing fails, use status message
-          errorMessage = `Request failed: ${response.status} ${response.statusText}`;
+          // If JSON parsing fails, use the text as is
+          errorMessage =
+            responseText ||
+            `Request failed: ${response.status} ${response.statusText}`;
         }
+
         throw new Error(errorMessage);
       }
 
-      // Only parse JSON if response is ok
-      const data = await response.json();
+      // Parse the successful response
+      const data = JSON.parse(responseText);
       return data;
     } catch (error) {
       // Re-throw known errors
