@@ -20,6 +20,13 @@ const loginSchema = z.object({
 });
 
 export const handleRegister: RequestHandler = async (req, res) => {
+  console.log("Registration attempt:", {
+    email: req.body.email,
+    firstName: req.body.firstName,
+    lastName: req.body.lastName,
+    hasPassword: !!req.body.password,
+  });
+
   try {
     const { email, password, firstName, lastName, phone, city } =
       registerSchema.parse(req.body);
