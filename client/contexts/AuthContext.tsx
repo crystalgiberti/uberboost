@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from "react";
 import apiService from "../services/apiService";
-import { atomicRegister, atomicLogin } from "../services/atomicApi";
-import { debugFetch, testMinimalAuth } from "../services/debugFetch";
+import { xhrAuthAPI } from "../services/xhrApi";
 
 interface User {
   id: string;
@@ -38,12 +37,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     // Check if user is already logged in
     const initAuth = async () => {
-      if (apiService.isAuthenticated()) {
+      const token = localStorage.getItem("authToken");
+      if (token) {
         try {
-          const userData = await apiService.getMe();
-          setUser(userData.user);
+          apiService.setToken(token);
+          const userData = await xhrAuthAPI.getProfile();
+          setUser(userData);
         } catch (error) {
           console.error("Failed to verify authentication:", error);
+          localStorage.removeItem("authToken");
           apiService.clearToken();
         }
       }
@@ -55,17 +57,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (email: string, password: string) => {
     try {
-      console.log("⚛️ Using ATOMIC login API...");
+      console.log("🔧 Using XHR login API...");
 
-      // Run debug tests first
-      console.log("Running debug fetch tests...");
-      await debugFetch();
-
-      const response = await atomicLogin(email, password);
+      const response = await xhrAuthAPI.login({ email, password });
 
       // Set token in localStorage and API service
       if (response.token) {
-        localStorage.setItem("auth_token", response.token);
+        localStorage.setItem("authToken", response.token);
         apiService.setToken(response.token);
         console.log("Token saved to localStorage");
       }
@@ -75,19 +73,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("User set in context");
       }
 
-      console.log("✅ Login completed in context");
+      console.log("✅ XHR Login completed successfully");
     } catch (error) {
-      console.error("❌ Login failed in context:", error);
-
-      // Try minimal auth as fallback
-      console.log("Trying minimal auth fallback...");
-      try {
-        const fallbackResult = await testMinimalAuth();
-        console.log("Minimal auth result:", fallbackResult);
-      } catch (fallbackError) {
-        console.error("Fallback also failed:", fallbackError);
-      }
-
+      console.error("❌ XHR Login failed:", error);
       throw error;
     }
   };
@@ -101,21 +89,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     city?: string;
   }) => {
     try {
-      console.log("⚛️ Using ATOMIC register API...");
+      console.log("🔧 Using XHR register API...");
       console.log("Attempting registration with:", {
         ...userData,
         password: "[HIDDEN]",
       });
 
-      // Run debug tests first
-      console.log("Running debug fetch tests...");
-      await debugFetch();
-
-      const response = await atomicRegister(userData);
+      const response = await xhrAuthAPI.register(userData);
 
       // Set token in localStorage and API service
       if (response.token) {
-        localStorage.setItem("auth_token", response.token);
+        localStorage.setItem("authToken", response.token);
         apiService.setToken(response.token);
         console.log("Token saved to localStorage");
       }
@@ -125,29 +109,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         console.log("User set in context");
       }
 
-      console.log("✅ Registration completed in context");
+      console.log("✅ XHR Registration completed successfully");
     } catch (error) {
-      console.error("❌ Registration failed in context:", error);
-
-      // Try minimal auth as fallback
-      console.log("Trying minimal auth fallback...");
-      try {
-        const fallbackResult = await testMinimalAuth();
-        console.log("Minimal auth result:", fallbackResult);
-      } catch (fallbackError) {
-        console.error("Fallback also failed:", fallbackError);
-      }
-
+      console.error("❌ XHR Registration failed:", error);
       throw error;
     }
   };
 
   const logout = async () => {
     try {
-      await apiService.logout();
+      await xhrAuthAPI.logout();
     } catch (error) {
-      console.error("Logout failed:", error);
+      console.error("XHR Logout failed:", error);
     } finally {
+      localStorage.removeItem("authToken");
+      apiService.clearToken();
       setUser(null);
     }
   };
