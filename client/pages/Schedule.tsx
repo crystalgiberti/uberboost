@@ -32,15 +32,44 @@ export default function Schedule() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [currentWeek, setCurrentWeek] = useState(new Date());
 
-  const daysOfWeek = [
-    { id: "today", label: "Today", date: "Dec 15" },
-    { id: "tomorrow", label: "Tomorrow", date: "Dec 16" },
-    { id: "monday", label: "Monday", date: "Dec 17" },
-    { id: "tuesday", label: "Tuesday", date: "Dec 18" },
-    { id: "wednesday", label: "Wednesday", date: "Dec 19" },
-    { id: "thursday", label: "Thursday", date: "Dec 20" },
-    { id: "friday", label: "Friday", date: "Dec 21" },
-  ];
+  // Generate dynamic days of week based on current date
+  const getDaysOfWeek = () => {
+    const today = new Date(currentWeek);
+    const days = [];
+
+    // Get today and next 6 days
+    for (let i = 0; i < 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+
+      const isToday = i === 0;
+      const isTomorrow = i === 1;
+
+      days.push({
+        id: isToday
+          ? "today"
+          : isTomorrow
+            ? "tomorrow"
+            : date.toISOString().split("T")[0],
+        label: isToday
+          ? "Today"
+          : isTomorrow
+            ? "Tomorrow"
+            : date.toLocaleDateString("en-US", { weekday: "long" }),
+        date: date.toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+        fullDate: date,
+        isToday,
+        isTomorrow,
+      });
+    }
+
+    return days;
+  };
+
+  const daysOfWeek = getDaysOfWeek();
 
   const todaySchedule = [
     {
