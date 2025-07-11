@@ -4,6 +4,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  testApiConnection,
+  simpleRegister,
+  simpleLogin,
+} from "../services/simpleApiService";
 
 export default function Debug() {
   const [email, setEmail] = useState("test@example.com");
