@@ -31,8 +31,13 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>({
+    id: "demo-user",
+    email: "demo@sage.app",
+    first_name: "Demo",
+    last_name: "User",
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // Force exit loading state quickly
