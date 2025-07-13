@@ -35,23 +35,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    // Force exit loading state quickly
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+
     // Check if user is already logged in
     const initAuth = async () => {
       const token = localStorage.getItem("authToken");
       if (token) {
         try {
           apiService.setToken(token);
-
-          // Add timeout to prevent infinite loading
-          const timeoutPromise = new Promise((_, reject) =>
-            setTimeout(() => reject(new Error("Auth check timeout")), 5000),
-          );
-
-          const userData = await Promise.race([
-            xhrAuthAPI.getProfile(),
-            timeoutPromise,
-          ]);
-
+          const userData = await xhrAuthAPI.getProfile();
           setUser(userData);
         } catch (error) {
           console.error("Failed to verify authentication:", error);
@@ -60,9 +55,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
       setIsLoading(false);
+      clearTimeout(timer);
     };
 
     initAuth();
+
+    return () => clearTimeout(timer);
   }, []);
 
   const login = async (email: string, password: string) => {
