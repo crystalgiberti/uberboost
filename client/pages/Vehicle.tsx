@@ -556,6 +556,160 @@ export default function Vehicle() {
             </CardContent>
           </Card>
         )}
+
+        {/* Add Vehicle Modal */}
+        {showAddVehicle && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+            <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+              <h2 className="text-xl font-bold mb-4">Add New Vehicle</h2>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="year">Year</Label>
+                    <Input
+                      id="year"
+                      type="number"
+                      value={newVehicle.year}
+                      onChange={(e) =>
+                        setNewVehicle({
+                          ...newVehicle,
+                          year: parseInt(e.target.value),
+                        })
+                      }
+                      min="1990"
+                      max={new Date().getFullYear() + 1}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="make">Make</Label>
+                    <Input
+                      id="make"
+                      value={newVehicle.make}
+                      onChange={(e) =>
+                        setNewVehicle({ ...newVehicle, make: e.target.value })
+                      }
+                      placeholder="Honda, Toyota, etc."
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="model">Model</Label>
+                  <Input
+                    id="model"
+                    value={newVehicle.model}
+                    onChange={(e) =>
+                      setNewVehicle({ ...newVehicle, model: e.target.value })
+                    }
+                    placeholder="Civic, Camry, etc."
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="color">Color</Label>
+                    <Input
+                      id="color"
+                      value={newVehicle.color}
+                      onChange={(e) =>
+                        setNewVehicle({ ...newVehicle, color: e.target.value })
+                      }
+                      placeholder="Silver, Black, etc."
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="licensePlate">License Plate</Label>
+                    <Input
+                      id="licensePlate"
+                      value={newVehicle.licensePlate}
+                      onChange={(e) =>
+                        setNewVehicle({
+                          ...newVehicle,
+                          licensePlate: e.target.value,
+                        })
+                      }
+                      placeholder="ABC-1234"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="mileage">Current Mileage</Label>
+                    <Input
+                      id="mileage"
+                      type="number"
+                      value={newVehicle.mileage}
+                      onChange={(e) =>
+                        setNewVehicle({
+                          ...newVehicle,
+                          mileage: parseInt(e.target.value),
+                        })
+                      }
+                      min="0"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="mpg">MPG</Label>
+                    <Input
+                      id="mpg"
+                      type="number"
+                      value={newVehicle.mpg}
+                      onChange={(e) =>
+                        setNewVehicle({
+                          ...newVehicle,
+                          mpg: parseInt(e.target.value),
+                        })
+                      }
+                      min="1"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="fuelType">Fuel Type</Label>
+                  <Select
+                    value={newVehicle.fuelType}
+                    onValueChange={(value: "gas" | "hybrid" | "electric") =>
+                      setNewVehicle({ ...newVehicle, fuelType: value })
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gas">Gas</SelectItem>
+                      <SelectItem value="hybrid">Hybrid</SelectItem>
+                      <SelectItem value="electric">Electric</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {error && <div className="text-red-600 text-sm">{error}</div>}
+
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    onClick={() => setShowAddVehicle(false)}
+                    variant="outline"
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleAddVehicle}
+                    disabled={
+                      isLoading || !newVehicle.make || !newVehicle.model
+                    }
+                    className="flex-1 bg-florida-ocean hover:bg-florida-ocean-dark text-white"
+                  >
+                    {isLoading ? "Adding..." : "Add Vehicle"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
