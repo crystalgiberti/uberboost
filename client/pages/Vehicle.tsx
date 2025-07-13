@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { xhrVehicleAPI } from "../services/xhrApi";
+import { useVehicleData } from "../hooks/useRealData";
 import {
   ArrowLeft,
   Car,
