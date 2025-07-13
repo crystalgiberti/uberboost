@@ -56,9 +56,8 @@ interface MaintenanceRecord {
 
 export default function Vehicle() {
   const navigate = useNavigate();
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { vehicles, isLoading, error, addVehicle, deleteVehicle } =
+    useVehicleData();
 
   const [maintenanceRecords, setMaintenanceRecords] = useState<
     MaintenanceRecord[]
