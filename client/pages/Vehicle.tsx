@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { xhrVehicleAPI } from "../services/xhrApi";
 import {
   ArrowLeft,
   Car,
@@ -55,20 +56,9 @@ interface MaintenanceRecord {
 
 export default function Vehicle() {
   const navigate = useNavigate();
-  const [vehicles, setVehicles] = useState<Vehicle[]>([
-    {
-      id: "1",
-      year: 2020,
-      make: "Honda",
-      model: "Civic",
-      color: "Silver",
-      licensePlate: "ABC-1234",
-      mileage: 45000,
-      fuelType: "gas",
-      mpg: 32,
-      isActive: true,
-    },
-  ]);
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [maintenanceRecords, setMaintenanceRecords] = useState<
     MaintenanceRecord[]
@@ -94,11 +84,87 @@ export default function Vehicle() {
     },
   ]);
 
-  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(
-    vehicles[0] || null,
-  );
+  const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
   const [showAddVehicle, setShowAddVehicle] = useState(false);
   const [showAddMaintenance, setShowAddMaintenance] = useState(false);
+  const [newVehicle, setNewVehicle] = useState({
+    year: new Date().getFullYear(),
+    make: "",
+    model: "",
+    color: "",
+    licensePlate: "",
+    mileage: 0,
+    fuelType: "gas" as "gas" | "hybrid" | "electric",
+    mpg: 25,
+    isActive: true,
+  });
+
+  // Load vehicles from API
+  useEffect(() => {
+    loadVehicles();
+  }, []);
+
+  const loadVehicles = async () => {
+    try {
+      setIsLoading(true);
+      const vehicleData = await xhrVehicleAPI.getVehicles();
+      setVehicles(vehicleData);
+      if (vehicleData.length > 0 && !selectedVehicle) {
+        setSelectedVehicle(vehicleData[0]);
+      }
+    } catch (err) {
+      setError("Failed to load vehicles");
+      console.error("Load vehicles error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAddVehicle = async () => {
+    try {
+      setIsLoading(true);
+      const createdVehicle = await xhrVehicleAPI.createVehicle(newVehicle);
+      await loadVehicles(); // Reload vehicles
+      setShowAddVehicle(false);
+      setSelectedVehicle(createdVehicle);
+      // Reset form
+      setNewVehicle({
+        year: new Date().getFullYear(),
+        make: "",
+        model: "",
+        color: "",
+        licensePlate: "",
+        mileage: 0,
+        fuelType: "gas",
+        mpg: 25,
+        isActive: true,
+      });
+    } catch (err) {
+      setError("Failed to add vehicle");
+      console.error("Add vehicle error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteVehicle = async (vehicleId: string) => {
+    if (!confirm("Are you sure you want to delete this vehicle?")) return;
+
+    try {
+      await xhrVehicleAPI.deleteVehicle(vehicleId);
+      await loadVehicles();
+      if (selectedVehicle?.id === vehicleId) {
+        setSelectedVehicle(
+          vehicles.length > 1
+            ? vehicles.find((v) => v.id !== vehicleId) || null
+            : null,
+        );
+      }
+    } catch (err) {
+      setError("Failed to delete vehicle");
+      console.error("Delete vehicle error:", err);
+    }
+  };
 
   const getMaintenanceIcon = (type: string) => {
     switch (type) {
@@ -109,7 +175,7 @@ export default function Vehicle() {
       case "inspection":
         return "🔍";
       case "repair":
-        return "🔧";
+        return "����";
       default:
         return "⚙️";
     }
