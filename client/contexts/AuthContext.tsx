@@ -41,7 +41,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (token) {
         try {
           apiService.setToken(token);
-          const userData = await xhrAuthAPI.getProfile();
+
+          // Add timeout to prevent infinite loading
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error("Auth check timeout")), 5000),
+          );
+
+          const userData = await Promise.race([
+            xhrAuthAPI.getProfile(),
+            timeoutPromise,
+          ]);
+
           setUser(userData);
         } catch (error) {
           console.error("Failed to verify authentication:", error);
