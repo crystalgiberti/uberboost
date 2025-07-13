@@ -1,6 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
+  subscribeToOracle,
+  getOracleIntelligence,
+} from "../services/oracleDataService";
+import {
   ArrowLeft,
   Calendar,
   Clock,
