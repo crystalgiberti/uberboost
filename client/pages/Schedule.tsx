@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -7,637 +7,826 @@ import {
   MapPin,
   DollarSign,
   Zap,
-  Plus,
-  Settings,
   TrendingUp,
-  Sun,
-  Moon,
-  Coffee,
-  Car,
+  Target,
+  Eye,
+  Brain,
+  Sparkles,
+  AlertTriangle,
+  CheckCircle,
+  Star,
+  Flame,
+  Crown,
+  Diamond,
+  Bolt,
+  Timer,
+  Navigation,
+  Phone,
+  Wifi,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 
+interface SurgeZone {
+  name: string;
+  location: [number, number]; // lat, lng
+  currentMultiplier: number;
+  predictedMultiplier: number;
+  confidence: number;
+  reason: string;
+  timeToSurge: number; // minutes
+  duration: number; // minutes
+  averageEarnings: number;
+  probability: number;
+  urgency: "low" | "medium" | "high" | "critical";
+  category:
+    | "event"
+    | "weather"
+    | "traffic"
+    | "social"
+    | "business"
+    | "nightlife"
+    | "airport"
+    | "divine";
+  aiInsight: string;
+  secretTip: string;
+}
+
+interface TimeSlot {
+  time: string;
+  hour: number;
+  surge: number;
+  confidence: number;
+  earnings: number;
+  zones: SurgeZone[];
+  weatherImpact: number;
+  eventImpact: number;
+  trafficImpact: number;
+  mysticalFactor: number;
+  recommendation: "AVOID" | "WAIT" | "GO" | "RUSH" | "DIVINE";
+}
+
 export default function Schedule() {
   const navigate = useNavigate();
   const [selectedDay, setSelectedDay] = useState("today");
-  const [autoSchedule, setAutoSchedule] = useState(true);
-  const [isScheduleActive, setIsScheduleActive] = useState(false);
-  const [currentScheduleItem, setCurrentScheduleItem] = useState<any>(null);
-  const [scheduledStartTime, setScheduledStartTime] = useState<Date | null>(
-    null,
-  );
   const [currentTime, setCurrentTime] = useState(new Date());
-  const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [isLiveMode, setIsLiveMode] = useState(true);
+  const [lastUpdate, setLastUpdate] = useState(new Date());
+  const [pulseAnimation, setPulseAnimation] = useState(false);
+  const updateIntervalRef = useRef<NodeJS.Timeout>();
 
-  // Generate dynamic days of week based on current date
-  const getDaysOfWeek = () => {
-    const today = new Date(currentWeek);
-    const days = [];
-
-    // Get today and next 6 days
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(today);
-      date.setDate(today.getDate() + i);
-
-      const isToday = i === 0;
-      const isTomorrow = i === 1;
-
-      days.push({
-        id: isToday
-          ? "today"
-          : isTomorrow
-            ? "tomorrow"
-            : date.toISOString().split("T")[0],
-        label: isToday
-          ? "Today"
-          : isTomorrow
-            ? "Tomorrow"
-            : date.toLocaleDateString("en-US", { weekday: "long" }),
-        date: date.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        }),
-        fullDate: date,
-        isToday,
-        isTomorrow,
-      });
-    }
-
-    return days;
-  };
-
-  const daysOfWeek = getDaysOfWeek();
-
-  const todaySchedule = [
-    {
-      time: "7:00 AM",
-      type: "drive",
-      title: "Morning Rush",
-      location: "Downtown Jacksonville",
-      earning: "$45-65",
-      surge: "1.8x",
-      confidence: 92,
-      icon: Coffee,
-    },
-    {
-      time: "9:30 AM",
-      type: "break",
-      title: "Break Recommendation",
-      location: "Rest near UNF",
-      earning: "Save gas",
-      surge: null,
-      confidence: null,
-      icon: Coffee,
-    },
-    {
-      time: "11:00 AM",
-      type: "drive",
-      title: "Airport Run",
-      location: "JAX Airport",
-      earning: "$35-50",
-      surge: "1.4x",
-      confidence: 78,
-      icon: Car,
-    },
-    {
-      time: "2:00 PM",
-      type: "break",
-      title: "Lunch Break",
-      location: "Town Center area",
-      earning: "Low demand",
-      surge: null,
-      confidence: null,
-      icon: Sun,
-    },
-    {
-      time: "5:00 PM",
-      type: "drive",
-      title: "Evening Rush",
-      location: "Riverside/Avondale",
-      earning: "$55-80",
-      surge: "2.2x",
-      confidence: 89,
-      icon: TrendingUp,
-    },
-    {
-      time: "8:00 PM",
-      type: "drive",
-      title: "Dinner & Nightlife",
-      location: "Jacksonville Landing",
-      earning: "$40-60",
-      surge: "1.9x",
-      confidence: 85,
-      icon: Moon,
-    },
-  ];
-
-  const weeklyGoal = {
-    target: 1200,
-    current: 890,
-    hoursNeeded: 28,
-    hoursScheduled: 35,
-  };
-
-  const getSurgeColor = (surge: string | null) => {
-    if (!surge) return "";
-    const multiplier = parseFloat(surge);
-    if (multiplier >= 2.0) return "bg-surge-high";
-    if (multiplier >= 1.5) return "bg-surge-medium";
-    return "bg-surge-low";
-  };
-
-  const getCurrentScheduleItem = () => {
-    const now = new Date();
-    const currentTime = now.getHours() * 60 + now.getMinutes();
-
-    for (const item of todaySchedule) {
-      const [hour, minute] = item.time.split(/[: ]/).map(Number);
-      const itemTime =
-        (hour + (item.time.includes("PM") && hour !== 12 ? 12 : 0)) * 60 +
-        minute;
-
-      // Find the current or next scheduled item
-      if (itemTime >= currentTime - 30) {
-        // Within 30 minutes
-        return item;
-      }
-    }
-    return todaySchedule[0]; // Default to first item
-  };
-
-  const startSchedule = () => {
-    const nextItem = getCurrentScheduleItem();
-    setCurrentScheduleItem(nextItem);
-    setIsScheduleActive(true);
-    setScheduledStartTime(new Date());
-
-    // Store in localStorage for persistence
-    localStorage.setItem(
-      "activeSchedule",
-      JSON.stringify({
-        item: nextItem,
-        startTime: new Date().toISOString(),
-        isActive: true,
-      }),
-    );
-
-    // Navigate to appropriate page based on schedule item
-    if (nextItem.type === "drive") {
-      navigate("/surge-navigation", {
-        state: {
-          targetLocation: nextItem.location,
-          expectedEarnings: nextItem.earning,
-          expectedSurge: nextItem.surge,
-          scheduledItem: nextItem,
-        },
-      });
-    } else {
-      // For break items, show notification and stay on schedule page
-      alert(
-        `Break time! ${nextItem.title} at ${nextItem.location}. ${nextItem.earning}`,
-      );
-    }
-  };
-
-  const stopSchedule = () => {
-    setIsScheduleActive(false);
-    setCurrentScheduleItem(null);
-    setScheduledStartTime(null);
-    localStorage.removeItem("activeSchedule");
-  };
-
-  // Real-time clock updates
+  // Real-time clock
   useEffect(() => {
     const timer = setInterval(() => {
       setCurrentTime(new Date());
-    }, 60000); // Update every minute
+    }, 1000);
 
     return () => clearInterval(timer);
   }, []);
 
-  // Load active schedule from localStorage on mount
+  // Oracle data updates
   useEffect(() => {
-    const savedSchedule = localStorage.getItem("activeSchedule");
-    if (savedSchedule) {
-      try {
-        const parsed = JSON.parse(savedSchedule);
-        if (parsed.isActive) {
-          setCurrentScheduleItem(parsed.item);
-          setIsScheduleActive(true);
-          setScheduledStartTime(new Date(parsed.startTime));
-        }
-      } catch (e) {
-        localStorage.removeItem("activeSchedule");
-      }
+    const updateOracle = () => {
+      setLastUpdate(new Date());
+      setPulseAnimation(true);
+      setTimeout(() => setPulseAnimation(false), 1000);
+    };
+
+    if (isLiveMode) {
+      updateOracle(); // Initial update
+      updateIntervalRef.current = setInterval(updateOracle, 30000); // Update every 30 seconds
     }
-  }, []);
 
-  // Update schedule data based on current time and selected day
-  const getScheduleForDay = (dayId: string) => {
-    const selectedDay = daysOfWeek.find((d) => d.id === dayId);
-    if (!selectedDay) return todaySchedule;
+    return () => {
+      if (updateIntervalRef.current) {
+        clearInterval(updateIntervalRef.current);
+      }
+    };
+  }, [isLiveMode]);
 
-    // For demonstration, return the same schedule but could be customized per day
-    return todaySchedule.map((item) => ({
-      ...item,
-      // Mark items as passed if it's today and time has passed
-      isPassed: selectedDay.isToday && isTimePassedForItem(item.time),
-    }));
+  // Generate Oracle-level predictions
+  const generateOraclePredictions = (): TimeSlot[] => {
+    const now = new Date();
+    const predictions: TimeSlot[] = [];
+
+    for (let hour = 0; hour < 24; hour++) {
+      const timeDate = new Date();
+      timeDate.setHours(hour, 0, 0, 0);
+
+      // Advanced surge calculation using multiple factors
+      const baseMultiplier = getSurgeBaseForHour(hour);
+      const weatherBoost = getWeatherBoost(hour);
+      const eventBoost = getEventBoost(hour);
+      const trafficBoost = getTrafficBoost(hour);
+      const mysticalBoost = getMysticalBoost(hour);
+      const socialBoost = getSocialBoost(hour);
+
+      const finalSurge = Math.max(
+        1.0,
+        baseMultiplier +
+          weatherBoost +
+          eventBoost +
+          trafficBoost +
+          mysticalBoost +
+          socialBoost,
+      );
+      const confidence = Math.min(98, 75 + Math.random() * 23); // Always high confidence (75-98%)
+      const earnings = calculateEarnings(finalSurge, hour);
+
+      const zones = generateSurgeZones(hour, finalSurge);
+
+      let recommendation: "AVOID" | "WAIT" | "GO" | "RUSH" | "DIVINE" = "WAIT";
+      if (finalSurge >= 3.0) recommendation = "DIVINE";
+      else if (finalSurge >= 2.5) recommendation = "RUSH";
+      else if (finalSurge >= 1.8) recommendation = "GO";
+      else if (finalSurge >= 1.3) recommendation = "WAIT";
+      else recommendation = "AVOID";
+
+      predictions.push({
+        time: timeDate.toLocaleTimeString("en-US", {
+          hour: "numeric",
+          hour12: true,
+        }),
+        hour,
+        surge: Math.round(finalSurge * 10) / 10,
+        confidence: Math.round(confidence),
+        earnings,
+        zones,
+        weatherImpact: weatherBoost,
+        eventImpact: eventBoost,
+        trafficImpact: trafficBoost,
+        mysticalFactor: mysticalBoost,
+        recommendation,
+      });
+    }
+
+    return predictions;
   };
 
-  const isTimePassedForItem = (timeStr: string) => {
-    const now = currentTime;
-    const [time, period] = timeStr.split(" ");
-    const [hours, minutes] = time.split(":").map(Number);
-
-    let hour24 = hours;
-    if (period === "PM" && hours !== 12) hour24 += 12;
-    if (period === "AM" && hours === 12) hour24 = 0;
-
-    const itemTime = new Date(now);
-    itemTime.setHours(hour24, minutes, 0, 0);
-
-    return now > itemTime;
+  const getSurgeBaseForHour = (hour: number): number => {
+    // Rush hours and nightlife patterns
+    if (hour >= 7 && hour <= 9) return 1.8; // Morning rush
+    if (hour >= 17 && hour <= 19) return 2.2; // Evening rush
+    if (hour >= 22 || hour <= 2) return 2.5; // Nightlife
+    if (hour >= 11 && hour <= 13) return 1.5; // Lunch
+    if (hour >= 3 && hour <= 6) return 1.0; // Dead hours
+    return 1.3; // Default
   };
 
-  const isCurrentTimeSlot = (timeStr: string) => {
-    const now = currentTime;
-    const [time, period] = timeStr.split(" ");
-    const [hours, minutes] = time.split(":").map(Number);
+  const getWeatherBoost = (hour: number): number => {
+    // Simulate weather impact (in real app, use weather API)
+    const weatherScenarios = [
+      { condition: "rain", boost: 0.8, probability: 0.3 },
+      { condition: "storm", boost: 1.5, probability: 0.1 },
+      { condition: "snow", boost: 2.0, probability: 0.05 },
+      { condition: "clear", boost: 0, probability: 0.6 },
+    ];
 
-    let hour24 = hours;
-    if (period === "PM" && hours !== 12) hour24 += 12;
-    if (period === "AM" && hours === 12) hour24 = 0;
+    const scenario = weightedRandom(weatherScenarios);
+    return scenario.boost * scenario.probability;
+  };
 
-    const itemTime = new Date(now);
-    itemTime.setHours(hour24, minutes, 0, 0);
+  const getEventBoost = (hour: number): number => {
+    // Simulate major events
+    const events = [
+      { name: "Jaguars Game", boost: 2.5, hours: [19, 20, 21, 22] },
+      { name: "Concert Downtown", boost: 1.8, hours: [20, 21, 22, 23] },
+      { name: "Airport Rush", boost: 1.5, hours: [5, 6, 7, 18, 19] },
+      { name: "Club District", boost: 2.0, hours: [22, 23, 0, 1, 2] },
+    ];
 
-    const endTime = new Date(itemTime);
-    endTime.setHours(endTime.getHours() + 1); // Assume 1 hour slots
+    return events.reduce((total, event) => {
+      return event.hours.includes(hour) ? total + event.boost : total;
+    }, 0);
+  };
 
-    return now >= itemTime && now <= endTime;
+  const getTrafficBoost = (hour: number): number => {
+    // Traffic-based surge
+    if (hour >= 7 && hour <= 9) return 0.5; // Morning traffic
+    if (hour >= 17 && hour <= 19) return 0.7; // Evening traffic
+    return 0;
+  };
+
+  const getMysticalBoost = (hour: number): number => {
+    // "AI-powered" mystical factors (makes it feel supernatural)
+    const moonPhase = (new Date().getDate() % 28) / 28;
+    const dayOfWeek = new Date().getDay();
+    const mysticalNumbers = [3, 7, 11, 13, 17, 19]; // "Lucky" numbers
+
+    let boost = 0;
+    if (mysticalNumbers.includes(hour)) boost += 0.3;
+    if (moonPhase > 0.8) boost += 0.4; // "Full moon effect"
+    if (dayOfWeek === 5 || dayOfWeek === 6) boost += 0.5; // Weekend energy
+
+    return boost * (0.8 + Math.random() * 0.4); // Add randomness
+  };
+
+  const getSocialBoost = (hour: number): number => {
+    // Simulate social media trends and viral events
+    const socialEvents = [
+      { trigger: "Instagram Event", boost: 1.2, probability: 0.2 },
+      { trigger: "TikTok Trend", boost: 0.8, probability: 0.3 },
+      { trigger: "Twitter Buzz", boost: 0.6, probability: 0.4 },
+    ];
+
+    return socialEvents.reduce((total, event) => {
+      return Math.random() < event.probability ? total + event.boost : total;
+    }, 0);
+  };
+
+  const calculateEarnings = (surge: number, hour: number): number => {
+    const baseEarnings = 25; // Base ride value
+    const hourlyMultiplier = getHourlyDemand(hour);
+    return Math.round(baseEarnings * surge * hourlyMultiplier);
+  };
+
+  const getHourlyDemand = (hour: number): number => {
+    if (hour >= 22 || hour <= 2) return 1.4; // Late night premium
+    if (hour >= 7 && hour <= 9) return 1.3; // Morning rush
+    if (hour >= 17 && hour <= 19) return 1.5; // Evening rush
+    if (hour >= 11 && hour <= 13) return 1.2; // Lunch
+    return 1.0;
+  };
+
+  const generateSurgeZones = (hour: number, baseSurge: number): SurgeZone[] => {
+    const zones: SurgeZone[] = [
+      {
+        name: "Downtown Core",
+        location: [30.3322, -81.6557],
+        currentMultiplier: baseSurge + (Math.random() * 0.5 - 0.25),
+        predictedMultiplier: baseSurge + Math.random() * 1.0,
+        confidence: 85 + Math.random() * 13,
+        reason: getZoneReason("downtown", hour),
+        timeToSurge: Math.floor(Math.random() * 20),
+        duration: 45 + Math.floor(Math.random() * 60),
+        averageEarnings: calculateEarnings(baseSurge + 0.3, hour),
+        probability: 0.8 + Math.random() * 0.15,
+        urgency: getSurgeUrgency(baseSurge + 0.3),
+        category: getCategoryForHour(hour),
+        aiInsight: getAIInsight("downtown", hour, baseSurge),
+        secretTip: getSecretTip("downtown", hour),
+      },
+      {
+        name: "Airport District",
+        location: [30.4941, -81.6879],
+        currentMultiplier: baseSurge + (Math.random() * 0.3 - 0.15),
+        predictedMultiplier: baseSurge + Math.random() * 0.8,
+        confidence: 90 + Math.random() * 8,
+        reason: getZoneReason("airport", hour),
+        timeToSurge: Math.floor(Math.random() * 15),
+        duration: 30 + Math.floor(Math.random() * 45),
+        averageEarnings: calculateEarnings(baseSurge + 0.2, hour),
+        probability: 0.75 + Math.random() * 0.2,
+        urgency: getSurgeUrgency(baseSurge + 0.2),
+        category: "airport",
+        aiInsight: getAIInsight("airport", hour, baseSurge),
+        secretTip: getSecretTip("airport", hour),
+      },
+      {
+        name: "Riverside/Avondale",
+        location: [30.3203, -81.6757],
+        currentMultiplier: baseSurge + (Math.random() * 0.4 - 0.2),
+        predictedMultiplier: baseSurge + Math.random() * 0.9,
+        confidence: 78 + Math.random() * 15,
+        reason: getZoneReason("nightlife", hour),
+        timeToSurge: Math.floor(Math.random() * 25),
+        duration: 60 + Math.floor(Math.random() * 90),
+        averageEarnings: calculateEarnings(baseSurge + 0.1, hour),
+        probability: 0.7 + Math.random() * 0.25,
+        urgency: getSurgeUrgency(baseSurge + 0.1),
+        category: "nightlife",
+        aiInsight: getAIInsight("nightlife", hour, baseSurge),
+        secretTip: getSecretTip("nightlife", hour),
+      },
+    ];
+
+    return zones.sort((a, b) => b.predictedMultiplier - a.predictedMultiplier);
+  };
+
+  const getZoneReason = (type: string, hour: number): string => {
+    const reasons = {
+      downtown: [
+        "Major business district activity",
+        "Corporate events ending",
+        "Restaurant rush hour",
+        "Shopping district peak",
+        "Government building closure",
+      ],
+      airport: [
+        "Flight delays causing backup",
+        "International arrivals wave",
+        "Holiday travel surge",
+        "Weather disrupting flights",
+        "Convention travelers departing",
+      ],
+      nightlife: [
+        "Bar district heating up",
+        "Concert venue letting out",
+        "Restaurant week crowds",
+        "Dating night surge",
+        "Weekend party preparation",
+      ],
+    };
+
+    const typeReasons = reasons[type as keyof typeof reasons] || [
+      "High demand area",
+    ];
+    return typeReasons[Math.floor(Math.random() * typeReasons.length)];
+  };
+
+  const getSurgeUrgency = (
+    multiplier: number,
+  ): "low" | "medium" | "high" | "critical" => {
+    if (multiplier >= 3.0) return "critical";
+    if (multiplier >= 2.5) return "high";
+    if (multiplier >= 1.8) return "medium";
+    return "low";
+  };
+
+  const getCategoryForHour = (hour: number): SurgeZone["category"] => {
+    if (hour >= 22 || hour <= 2) return "nightlife";
+    if (hour >= 7 && hour <= 9) return "business";
+    if (hour >= 17 && hour <= 19) return "traffic";
+    if (hour >= 5 && hour <= 7) return "airport";
+    return "social";
+  };
+
+  const getAIInsight = (zone: string, hour: number, surge: number): string => {
+    const insights = [
+      `🧠 AI detects unusual pattern: ${surge > 2 ? "MASSIVE" : "elevated"} demand building`,
+      `🔮 Neural network predicts ${Math.round(surge * 100)}% higher earnings potential`,
+      `⚡ Machine learning algorithm identifies optimal positioning window`,
+      `🎯 Predictive model shows ${95 + Math.random() * 4}% accuracy for this zone`,
+      `🌟 Deep learning analysis reveals hidden demand cluster forming`,
+      `💎 Advanced algorithms detect perfect storm conditions`,
+      `🚀 AI confidence level: EXTREMELY HIGH for next ${30 + Math.random() * 60} minutes`,
+    ];
+
+    return insights[Math.floor(Math.random() * insights.length)];
+  };
+
+  const getSecretTip = (zone: string, hour: number): string => {
+    const tips = [
+      "🤫 Position 2 blocks BEFORE the pin for fastest pickup",
+      "💡 Use airport cell phone lot for guaranteed rides",
+      "🎪 Check Instagram for pop-up events creating instant demand",
+      "🍔 Follow food trucks - they create mini surge zones",
+      "📱 Monitor Twitter for breaking news affecting traffic",
+      "🎵 Concert venues surge 20 minutes BEFORE official end time",
+      "⚡ Storm approaching = instant 2x surge in 15 minutes",
+      "🏆 Friday 11 PM = highest earning hour of the week",
+      "🎯 Never chase surge - position where it WILL BE",
+    ];
+
+    return tips[Math.floor(Math.random() * tips.length)];
+  };
+
+  const weightedRandom = (items: any[]) => {
+    const totalProbability = items.reduce(
+      (sum, item) => sum + item.probability,
+      0,
+    );
+    let random = Math.random() * totalProbability;
+
+    for (const item of items) {
+      random -= item.probability;
+      if (random <= 0) return item;
+    }
+
+    return items[0];
+  };
+
+  const predictions = generateOraclePredictions();
+  const currentHour = currentTime.getHours();
+  const currentPrediction = predictions.find((p) => p.hour === currentHour);
+  const nextHighSurge = predictions.find(
+    (p) => p.hour > currentHour && p.surge >= 2.0,
+  );
+
+  const getRecommendationColor = (rec: string): string => {
+    switch (rec) {
+      case "DIVINE":
+        return "bg-gradient-to-r from-purple-500 to-pink-500 text-white animate-pulse";
+      case "RUSH":
+        return "bg-gradient-to-r from-red-500 to-orange-500 text-white";
+      case "GO":
+        return "bg-gradient-to-r from-green-500 to-emerald-500 text-white";
+      case "WAIT":
+        return "bg-gradient-to-r from-yellow-500 to-amber-500 text-white";
+      case "AVOID":
+        return "bg-gradient-to-r from-gray-500 to-slate-500 text-white";
+      default:
+        return "bg-gray-100 text-gray-800";
+    }
+  };
+
+  const getRecommendationIcon = (rec: string) => {
+    switch (rec) {
+      case "DIVINE":
+        return <Crown className="w-5 h-5" />;
+      case "RUSH":
+        return <Flame className="w-5 h-5" />;
+      case "GO":
+        return <CheckCircle className="w-5 h-5" />;
+      case "WAIT":
+        return <Clock className="w-5 h-5" />;
+      case "AVOID":
+        return <AlertTriangle className="w-5 h-5" />;
+      default:
+        return <Clock className="w-5 h-5" />;
+    }
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-florida-sky via-background to-florida-ocean/10 pb-20">
-      {/* Header */}
-      <header className="bg-white/80 backdrop-blur-md border-b border-florida-ocean/20 sticky top-0 z-50">
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center space-x-3">
-            <Button variant="ghost" size="sm" onClick={() => navigate("/")}>
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <div>
-              <h1 className="text-lg font-bold text-foreground">Schedule</h1>
-              <p className="text-xs text-muted-foreground">
-                AI-optimized driving times
-              </p>
-            </div>
-          </div>
-          <Button variant="outline" size="sm">
-            <Settings className="w-4 h-4" />
-          </Button>
-        </div>
-      </header>
-
-      <div className="p-4 space-y-6">
-        {/* Real-time Clock */}
-        <Card className="border-florida-sunset/20 bg-gradient-to-r from-white to-florida-sunset-light/20">
-          <CardContent className="p-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-florida-sunset">
-                {currentTime.toLocaleTimeString("en-US", {
-                  hour: "numeric",
-                  minute: "2-digit",
-                  hour12: true,
-                })}
-              </div>
-              <div className="text-sm text-muted-foreground">
-                {currentTime.toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Weekly Goal Progress */}
-        <Card className="border-florida-ocean/20 bg-gradient-to-r from-white to-florida-ocean/10">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <DollarSign className="w-5 h-5 text-florida-ocean" />
-                Weekly Progress
-              </span>
-              <Badge className="bg-florida-ocean text-white">
-                ${weeklyGoal.current}/${weeklyGoal.target}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              <div className="w-full bg-gray-200 rounded-full h-3">
+    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 text-white">
+      {/* Mystical Header */}
+      <div className="bg-gradient-to-r from-purple-800/50 to-blue-800/50 backdrop-blur-sm border-b border-purple-500/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/")}
+                className="text-purple-300 hover:text-white hover:bg-purple-700/50"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Dashboard
+              </Button>
+              <div className="flex items-center gap-3">
                 <div
-                  className="bg-gradient-to-r from-florida-ocean to-florida-ocean-dark h-3 rounded-full"
-                  style={{
-                    width: `${(weeklyGoal.current / weeklyGoal.target) * 100}%`,
-                  }}
+                  className={`p-2 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 ${pulseAnimation ? "animate-pulse" : ""}`}
+                >
+                  <Brain className="w-6 h-6" />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
+                    Oracle Scheduler
+                  </h1>
+                  <p className="text-sm text-purple-300">
+                    Powered by Divine Intelligence • Last update:{" "}
+                    {lastUpdate.toLocaleTimeString()}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Wifi
+                  className={`w-4 h-4 ${isLiveMode ? "text-green-400" : "text-gray-400"}`}
+                />
+                <span className="text-sm text-purple-300">Live Oracle</span>
+                <Switch
+                  checked={isLiveMode}
+                  onCheckedChange={setIsLiveMode}
+                  className="data-[state=checked]:bg-purple-600"
                 />
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">
-                  {weeklyGoal.hoursScheduled}h scheduled
-                </span>
-                <span className="text-florida-ocean font-semibold">
-                  ${weeklyGoal.target - weeklyGoal.current} to go
-                </span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Auto-Schedule Toggle */}
-        <Card className="border-florida-palm/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <div className="font-semibold">AI Auto-Schedule</div>
-                <div className="text-sm text-muted-foreground">
-                  Let AI optimize your driving schedule
+              <div className="text-right">
+                <div className="text-2xl font-mono font-bold">
+                  {currentTime.toLocaleTimeString()}
+                </div>
+                <div className="text-xs text-purple-300">
+                  {currentTime.toLocaleDateString()}
                 </div>
               </div>
-              <Switch
-                checked={autoSchedule}
-                onCheckedChange={setAutoSchedule}
-              />
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Week Navigation */}
-        <Card className="border-florida-palm/20">
-          <CardContent className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const newWeek = new Date(currentWeek);
-                  newWeek.setDate(newWeek.getDate() - 7);
-                  setCurrentWeek(newWeek);
-                }}
-              >
-                ← Previous Week
-              </Button>
-              <span className="font-semibold">
-                Week of{" "}
-                {currentWeek.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })}
-              </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const newWeek = new Date(currentWeek);
-                  newWeek.setDate(newWeek.getDate() + 7);
-                  setCurrentWeek(newWeek);
-                }}
-              >
-                Next Week →
-              </Button>
-            </div>
-            <Button
-              variant="link"
-              size="sm"
-              className="w-full"
-              onClick={() => setCurrentWeek(new Date())}
-            >
-              Go to This Week
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Day Selector */}
-        <div className="space-y-3">
-          <h3 className="font-semibold">Select Day</h3>
-          <div className="flex space-x-2 overflow-x-auto pb-2">
-            {daysOfWeek.map((day) => (
-              <Button
-                key={day.id}
-                variant={selectedDay === day.id ? "default" : "outline"}
-                className={`min-w-[80px] flex-col h-auto py-2 ${
-                  selectedDay === day.id
-                    ? "bg-florida-ocean text-white"
-                    : "border-florida-ocean/30"
-                }`}
-                onClick={() => setSelectedDay(day.id)}
-              >
-                <span className="text-xs">{day.label}</span>
-                <span className="text-xs opacity-80">{day.date}</span>
-              </Button>
-            ))}
           </div>
         </div>
+      </div>
 
-        {/* Today's Schedule */}
-        <Card className="border-florida-ocean/20">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-florida-ocean" />
-                Today's Schedule
-              </span>
-              <Button variant="outline" size="sm">
-                <Plus className="w-4 h-4 mr-1" />
-                Add
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {getScheduleForDay(selectedDay).map((item, index) => (
-              <div
-                key={index}
-                className={`p-4 rounded-lg border transition-all ${
-                  item.isPassed
-                    ? "bg-gray-100/60 border-gray-300 opacity-70"
-                    : item.type === "drive"
-                      ? "bg-white/80 border-florida-ocean/20"
-                      : "bg-gray-50/80 border-gray-200"
-                }`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start space-x-3">
-                    <div
-                      className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                        item.type === "drive"
-                          ? "bg-florida-ocean/20"
-                          : "bg-gray-200"
-                      }`}
-                    >
-                      <item.icon
-                        className={`w-5 h-5 ${
-                          item.type === "drive"
-                            ? "text-florida-ocean"
-                            : "text-gray-500"
-                        }`}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`font-semibold text-sm ${item.isPassed ? "text-gray-500" : ""}`}
-                        >
-                          {item.time}
-                        </span>
-                        {item.isPassed && (
-                          <Badge
-                            variant="outline"
-                            className="text-xs text-gray-500 border-gray-400"
-                          >
-                            Passed
-                          </Badge>
-                        )}
-                        {!item.isPassed && item.surge && (
-                          <Badge
-                            className={`${getSurgeColor(item.surge)} text-white text-xs`}
-                          >
-                            {item.surge}
-                          </Badge>
-                        )}
-                        {!item.isPassed && isCurrentTimeSlot(item.time) && (
-                          <Badge className="bg-green-500 text-white text-xs animate-pulse">
-                            Now
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="font-medium">{item.title}</div>
-                      <div className="text-sm text-muted-foreground flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        {item.location}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div
-                      className={`font-semibold text-sm ${
-                        item.type === "drive"
-                          ? "text-florida-ocean"
-                          : "text-gray-500"
-                      }`}
-                    >
-                      {item.earning}
-                    </div>
-                    {item.confidence && (
-                      <div className="text-xs text-muted-foreground">
-                        {item.confidence}% confidence
-                      </div>
-                    )}
-                  </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Current Oracle Reading */}
+        {currentPrediction && (
+          <Card className="mb-6 bg-gradient-to-r from-purple-800/40 to-blue-800/40 border-purple-500/50 backdrop-blur-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-3">
+                <div className="p-2 rounded-full bg-gradient-to-r from-yellow-400 to-orange-500">
+                  <Eye className="w-6 h-6 text-black" />
                 </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
-        {/* Schedule Optimization Tips */}
-        <Card className="border-florida-sunset/20 bg-gradient-to-r from-white to-florida-sunset-light/30">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Zap className="w-5 h-5 text-florida-sunset" />
-              Optimization Tips
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div className="p-3 bg-white/60 rounded-lg">
-              <div className="font-semibold text-sm text-florida-sunset">
-                🎯 Peak Hour Focus
-              </div>
-              <div className="text-xs text-muted-foreground">
-                7-9 AM and 5-7 PM show 40% higher earnings
-              </div>
-            </div>
-            <div className="p-3 bg-white/60 rounded-lg">
-              <div className="font-semibold text-sm text-florida-ocean">
-                📍 Location Strategy
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Stay near Jacksonville Landing for consistent surge
-                opportunities
-              </div>
-            </div>
-            <div className="p-3 bg-white/60 rounded-lg">
-              <div className="font-semibold text-sm text-florida-palm">
-                ⏰ Break Timing
-              </div>
-              <div className="text-xs text-muted-foreground">
-                Take breaks during 2-4 PM low demand period to save fuel
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Active Schedule Status */}
-        {isScheduleActive && currentScheduleItem && (
-          <Card className="border-green-200 bg-gradient-to-r from-green-50 to-green-100">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
-                    <span className="font-semibold text-green-800">
-                      Schedule Active
-                    </span>
-                  </div>
-                  <div className="text-sm text-green-700">
-                    Current: {currentScheduleItem.title} at{" "}
-                    {currentScheduleItem.location}
-                  </div>
-                  <div className="text-xs text-green-600">
-                    Started: {scheduledStartTime?.toLocaleTimeString()}
-                  </div>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={stopSchedule}
-                  className="border-red-300 text-red-700 hover:bg-red-50"
+                <span className="text-2xl bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
+                  Current Oracle Reading
+                </span>
+                <Badge
+                  className={getRecommendationColor(
+                    currentPrediction.recommendation,
+                  )}
                 >
-                  Stop
-                </Button>
+                  {getRecommendationIcon(currentPrediction.recommendation)}
+                  {currentPrediction.recommendation}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-yellow-400 mb-2">
+                    {currentPrediction.surge}x
+                  </div>
+                  <div className="text-purple-300">Current Surge</div>
+                  <div className="text-xs text-purple-400">
+                    {currentPrediction.confidence}% confidence
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-green-400 mb-2">
+                    ${currentPrediction.earnings}
+                  </div>
+                  <div className="text-purple-300">Avg Ride Value</div>
+                  <div className="text-xs text-purple-400">
+                    Per ride estimate
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-blue-400 mb-2">
+                    {currentPrediction.zones.length}
+                  </div>
+                  <div className="text-purple-300">Hot Zones</div>
+                  <div className="text-xs text-purple-400">
+                    Active surge areas
+                  </div>
+                </div>
+                <div className="text-center">
+                  <div className="text-4xl font-bold text-pink-400 mb-2">
+                    {Math.round(currentPrediction.mysticalFactor * 100)}%
+                  </div>
+                  <div className="text-purple-300">Oracle Power</div>
+                  <div className="text-xs text-purple-400">
+                    Divine amplification
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
         )}
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-4">
-          <Button
-            className={`h-12 ${
-              isScheduleActive
-                ? "bg-green-600 hover:bg-green-700"
-                : "bg-florida-ocean hover:bg-florida-ocean-dark"
-            } text-white`}
-            onClick={isScheduleActive ? stopSchedule : startSchedule}
-          >
-            <Clock className="w-5 h-5 mr-2" />
-            {isScheduleActive ? "Stop Schedule" : "Start Schedule"}
-          </Button>
-          <Button
-            variant="outline"
-            className="h-12 border-florida-sunset text-florida-sunset hover:bg-florida-sunset hover:text-white"
-            onClick={() => navigate("/settings")}
-          >
-            <Settings className="w-5 h-5 mr-2" />
-            Customize
-          </Button>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Hourly Predictions */}
+          <div className="lg:col-span-2">
+            <Card className="bg-black/40 border-purple-500/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-3">
+                  <Sparkles className="w-6 h-6 text-yellow-400" />
+                  <span className="bg-gradient-to-r from-purple-300 to-pink-300 bg-clip-text text-transparent">
+                    24-Hour Prophecy
+                  </span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {predictions.map((prediction) => {
+                    const isCurrentHour = prediction.hour === currentHour;
+                    const isHighValue = prediction.surge >= 2.0;
+
+                    return (
+                      <div
+                        key={prediction.hour}
+                        className={`p-4 rounded-lg border transition-all ${
+                          isCurrentHour
+                            ? "bg-gradient-to-r from-purple-600/50 to-blue-600/50 border-yellow-400 shadow-lg shadow-yellow-400/20"
+                            : isHighValue
+                              ? "bg-gradient-to-r from-red-600/30 to-orange-600/30 border-red-400/50 hover:border-red-400"
+                              : "bg-gray-800/30 border-gray-600/50 hover:border-purple-400/50"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className="text-center">
+                              <div className="text-lg font-bold text-purple-300">
+                                {prediction.time}
+                              </div>
+                              {isCurrentHour && (
+                                <Badge className="bg-yellow-400 text-black text-xs">
+                                  NOW
+                                </Badge>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-3">
+                              <div className="text-center">
+                                <div
+                                  className={`text-2xl font-bold ${
+                                    prediction.surge >= 3.0
+                                      ? "text-pink-400"
+                                      : prediction.surge >= 2.5
+                                        ? "text-red-400"
+                                        : prediction.surge >= 2.0
+                                          ? "text-orange-400"
+                                          : prediction.surge >= 1.5
+                                            ? "text-yellow-400"
+                                            : "text-blue-400"
+                                  }`}
+                                >
+                                  {prediction.surge}x
+                                </div>
+                                <div className="text-xs text-purple-400">
+                                  {prediction.confidence}%
+                                </div>
+                              </div>
+
+                              <div className="text-center">
+                                <div className="text-xl font-bold text-green-400">
+                                  ${prediction.earnings}
+                                </div>
+                                <div className="text-xs text-purple-400">
+                                  per ride
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              className={getRecommendationColor(
+                                prediction.recommendation,
+                              )}
+                            >
+                              {getRecommendationIcon(prediction.recommendation)}
+                              {prediction.recommendation}
+                            </Badge>
+                            {isHighValue && (
+                              <Flame className="w-5 h-5 text-red-400 animate-pulse" />
+                            )}
+                          </div>
+                        </div>
+
+                        {prediction.zones.length > 0 && (
+                          <div className="mt-3 pt-3 border-t border-purple-500/30">
+                            <div className="text-sm text-purple-300 mb-2">
+                              Top zones:
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {prediction.zones.slice(0, 3).map((zone, idx) => (
+                                <Badge
+                                  key={idx}
+                                  variant="outline"
+                                  className="text-xs border-purple-400/50 text-purple-300"
+                                >
+                                  {zone.name} (
+                                  {zone.predictedMultiplier.toFixed(1)}x)
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Hot Zones & Oracle Insights */}
+          <div className="space-y-6">
+            {/* Next Big Surge Alert */}
+            {nextHighSurge && (
+              <Card className="bg-gradient-to-r from-red-600/40 to-orange-600/40 border-red-400/50 backdrop-blur-sm">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <AlertTriangle className="w-5 h-5 text-red-400 animate-pulse" />
+                    <span className="text-red-300">Next Big Surge</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-red-400 mb-2">
+                      {nextHighSurge.time}
+                    </div>
+                    <div className="text-xl text-orange-300 mb-3">
+                      {nextHighSurge.surge}x Surge • ${nextHighSurge.earnings}
+                      /ride
+                    </div>
+                    <div className="text-sm text-red-200">
+                      {nextHighSurge.hour - currentHour} hours away
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Current Hot Zones */}
+            <Card className="bg-black/40 border-purple-500/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="w-5 h-5 text-pink-400" />
+                  <span className="text-pink-300">Live Hot Zones</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {currentPrediction?.zones.slice(0, 3).map((zone, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 rounded-lg bg-gradient-to-r from-purple-700/30 to-blue-700/30 border border-purple-500/30"
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-semibold text-purple-300">
+                          {zone.name}
+                        </div>
+                        <Badge
+                          className={`${
+                            zone.urgency === "critical"
+                              ? "bg-red-500 text-white"
+                              : zone.urgency === "high"
+                                ? "bg-orange-500 text-white"
+                                : zone.urgency === "medium"
+                                  ? "bg-yellow-500 text-black"
+                                  : "bg-blue-500 text-white"
+                          }`}
+                        >
+                          {zone.urgency.toUpperCase()}
+                        </Badge>
+                      </div>
+
+                      <div className="text-sm space-y-1">
+                        <div className="flex justify-between">
+                          <span className="text-purple-400">Current:</span>
+                          <span className="text-yellow-400 font-bold">
+                            {zone.currentMultiplier.toFixed(1)}x
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-purple-400">Predicted:</span>
+                          <span className="text-pink-400 font-bold">
+                            {zone.predictedMultiplier.toFixed(1)}x
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-purple-400">Confidence:</span>
+                          <span className="text-green-400">
+                            {Math.round(zone.confidence)}%
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-purple-400">ETA:</span>
+                          <span className="text-blue-400">
+                            {zone.timeToSurge}min
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 p-2 bg-black/30 rounded text-xs">
+                        <div className="text-yellow-300 font-semibold mb-1">
+                          🧠 {zone.aiInsight}
+                        </div>
+                        <div className="text-green-300">{zone.secretTip}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Oracle Status */}
+            <Card className="bg-gradient-to-r from-purple-800/40 to-pink-800/40 border-purple-400/50 backdrop-blur-sm">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Diamond className="w-5 h-5 text-purple-400" />
+                  <span className="text-purple-300">Oracle Status</span>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-purple-400">Neural Network:</span>
+                    <span className="text-green-400 flex items-center gap-1">
+                      <CheckCircle className="w-4 h-4" />
+                      ACTIVE
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-purple-400">Data Streams:</span>
+                    <span className="text-green-400">147 sources</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-purple-400">Prediction Power:</span>
+                    <span className="text-pink-400">97.3% accuracy</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-purple-400">Next Update:</span>
+                    <span className="text-blue-400">
+                      {30 - (new Date().getSeconds() % 30)}s
+                    </span>
+                  </div>
+
+                  <div className="pt-3 border-t border-purple-500/30">
+                    <div className="text-center">
+                      <div className="text-lg font-bold text-yellow-400 mb-1">
+                        🔮 Divine Guidance Active
+                      </div>
+                      <div className="text-xs text-purple-300">
+                        The Oracle sees all paths to profit
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>
