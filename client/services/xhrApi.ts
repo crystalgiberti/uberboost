@@ -245,4 +245,188 @@ export class XHRAuthAPI {
   }
 }
 
+// Vehicle API
+export class XHRVehicleAPI {
+  private client: XHRClient;
+
+  constructor() {
+    this.client = new XHRClient();
+  }
+
+  private getAuthHeaders() {
+    const token = localStorage.getItem("authToken");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  async getVehicles(): Promise<any[]> {
+    try {
+      const response = await this.client.get(
+        "/api/vehicles",
+        this.getAuthHeaders(),
+      );
+      return response.data;
+    } catch (error) {
+      console.error("XHR Get vehicles error:", error);
+      throw error;
+    }
+  }
+
+  async createVehicle(vehicleData: any): Promise<any> {
+    try {
+      const response = await this.client.post(
+        "/api/vehicles",
+        vehicleData,
+        this.getAuthHeaders(),
+      );
+      return response.data;
+    } catch (error) {
+      console.error("XHR Create vehicle error:", error);
+      throw error;
+    }
+  }
+
+  async updateVehicle(id: string, vehicleData: any): Promise<any> {
+    try {
+      const response = await this.client.put(
+        `/api/vehicles/${id}`,
+        vehicleData,
+        this.getAuthHeaders(),
+      );
+      return response.data;
+    } catch (error) {
+      console.error("XHR Update vehicle error:", error);
+      throw error;
+    }
+  }
+
+  async deleteVehicle(id: string): Promise<void> {
+    try {
+      await this.client.delete(`/api/vehicles/${id}`, this.getAuthHeaders());
+    } catch (error) {
+      console.error("XHR Delete vehicle error:", error);
+      throw error;
+    }
+  }
+}
+
+// Rides API
+export class XHRRidesAPI {
+  private client: XHRClient;
+
+  constructor() {
+    this.client = new XHRClient();
+  }
+
+  private getAuthHeaders() {
+    const token = localStorage.getItem("authToken");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  async getRides(page = 1, limit = 50): Promise<any> {
+    try {
+      const response = await this.client.get(
+        `/api/rides?page=${page}&limit=${limit}`,
+        this.getAuthHeaders(),
+      );
+      return response.data;
+    } catch (error) {
+      console.error("XHR Get rides error:", error);
+      throw error;
+    }
+  }
+
+  async createRide(rideData: any): Promise<any> {
+    try {
+      const response = await this.client.post(
+        "/api/rides",
+        rideData,
+        this.getAuthHeaders(),
+      );
+      return response.data;
+    } catch (error) {
+      console.error("XHR Create ride error:", error);
+      throw error;
+    }
+  }
+
+  async deleteRide(id: string): Promise<void> {
+    try {
+      await this.client.delete(`/api/rides/${id}`, this.getAuthHeaders());
+    } catch (error) {
+      console.error("XHR Delete ride error:", error);
+      throw error;
+    }
+  }
+
+  async getRideStats(): Promise<any> {
+    try {
+      const response = await this.client.get(
+        "/api/rides/stats",
+        this.getAuthHeaders(),
+      );
+      return response.data;
+    } catch (error) {
+      console.error("XHR Get ride stats error:", error);
+      throw error;
+    }
+  }
+}
+
+// Users API
+export class XHRUsersAPI {
+  private client: XHRClient;
+
+  constructor() {
+    this.client = new XHRClient();
+  }
+
+  private getAuthHeaders() {
+    const token = localStorage.getItem("authToken");
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  }
+
+  async getDashboard(): Promise<any> {
+    try {
+      const response = await this.client.get(
+        "/api/users/dashboard",
+        this.getAuthHeaders(),
+      );
+      return response.data;
+    } catch (error) {
+      console.error("XHR Get dashboard error:", error);
+      throw error;
+    }
+  }
+
+  async getSettings(): Promise<any> {
+    try {
+      const response = await this.client.get(
+        "/api/users/settings",
+        this.getAuthHeaders(),
+      );
+      return response.data;
+    } catch (error) {
+      console.error("XHR Get settings error:", error);
+      throw error;
+    }
+  }
+
+  async updateSettings(settingsData: any): Promise<any> {
+    try {
+      const response = await this.client.put(
+        "/api/users/settings",
+        settingsData,
+        this.getAuthHeaders(),
+      );
+      return response.data;
+    } catch (error) {
+      console.error("XHR Update settings error:", error);
+      throw error;
+    }
+  }
+}
+
 export const xhrAuthAPI = new XHRAuthAPI();
+export const xhrVehicleAPI = new XHRVehicleAPI();
+export const xhrRidesAPI = new XHRRidesAPI();
+export const xhrUsersAPI = new XHRUsersAPI();
