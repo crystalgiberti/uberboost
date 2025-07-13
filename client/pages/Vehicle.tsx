@@ -98,32 +98,16 @@ export default function Vehicle() {
     isActive: true,
   });
 
-  // Load vehicles from API
-  useEffect(() => {
-    loadVehicles();
-  }, []);
-
-  const loadVehicles = async () => {
-    try {
-      setIsLoading(true);
-      const vehicleData = await xhrVehicleAPI.getVehicles();
-      setVehicles(vehicleData);
-      if (vehicleData.length > 0 && !selectedVehicle) {
-        setSelectedVehicle(vehicleData[0]);
-      }
-    } catch (err) {
-      setError("Failed to load vehicles");
-      console.error("Load vehicles error:", err);
-    } finally {
-      setIsLoading(false);
+  // Set first vehicle as selected when vehicles load
+  useState(() => {
+    if (vehicles.length > 0 && !selectedVehicle) {
+      setSelectedVehicle(vehicles[0]);
     }
-  };
+  });
 
   const handleAddVehicle = async () => {
     try {
-      setIsLoading(true);
-      const createdVehicle = await xhrVehicleAPI.createVehicle(newVehicle);
-      await loadVehicles(); // Reload vehicles
+      const createdVehicle = await addVehicle(newVehicle);
       setShowAddVehicle(false);
       setSelectedVehicle(createdVehicle);
       // Reset form
@@ -139,10 +123,7 @@ export default function Vehicle() {
         isActive: true,
       });
     } catch (err) {
-      setError("Failed to add vehicle");
       console.error("Add vehicle error:", err);
-    } finally {
-      setIsLoading(false);
     }
   };
 
@@ -150,8 +131,7 @@ export default function Vehicle() {
     if (!confirm("Are you sure you want to delete this vehicle?")) return;
 
     try {
-      await xhrVehicleAPI.deleteVehicle(vehicleId);
-      await loadVehicles();
+      await deleteVehicle(vehicleId);
       if (selectedVehicle?.id === vehicleId) {
         setSelectedVehicle(
           vehicles.length > 1
@@ -160,7 +140,6 @@ export default function Vehicle() {
         );
       }
     } catch (err) {
-      setError("Failed to delete vehicle");
       console.error("Delete vehicle error:", err);
     }
   };
