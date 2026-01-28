@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useAuth } from "../contexts/AuthContext";
+import { runDebugTests } from "../services/xhrApiDebug";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
   Zap,
@@ -11,30 +12,76 @@ import {
   Lock,
   Eye,
   EyeOff,
-  Smartphone,
+  User,
+  Phone,
   MapPin,
   TrendingUp,
   DollarSign,
 } from "lucide-react";
 
 export default function Login() {
+  const { login, register } = useAuth();
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
-  const [loginMethod, setLoginMethod] = useState<"email" | "phone">("email");
+
   const [formData, setFormData] = useState({
     email: "",
-    phone: "",
     password: "",
+    firstName: "",
+    lastName: "",
+    phone: "",
+    city: "",
     rememberMe: false,
   });
 
   const handleInputChange = (field: string, value: string | boolean) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    setError(null); // Clear error when user types
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Login with:", formData);
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      if (isRegistering) {
+        if (!formData.firstName || !formData.lastName) {
+          throw new Error("First name and last name are required");
+        }
+
+        console.log("Submitting registration form");
+        await register({
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phone: formData.phone || undefined,
+          city: formData.city || undefined,
+        });
+        console.log("Registration completed successfully");
+      } else {
+        console.log("Submitting login form");
+        await login(formData.email, formData.password);
+        console.log("Login completed successfully");
+      }
+    } catch (error: any) {
+      console.error("Form submission error:", error);
+
+      // Extract meaningful error message
+      let errorMessage = "Authentication failed";
+      if (error?.message) {
+        errorMessage = error.message;
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+
+      setError(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const features = [
@@ -100,72 +147,102 @@ export default function Login() {
         </div>
       </div>
 
-      {/* Login Form */}
+      {/* Login/Register Form */}
       <div className="flex-1 px-6">
         <Card className="border-florida-ocean/20 bg-white/80 backdrop-blur-md">
           <CardHeader className="text-center">
             <CardTitle className="text-xl text-foreground">
-              Start Your Trial
+              {isRegistering ? "Create Your Account" : "Welcome Back"}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              3-7 days free, then $9.99/month
+              {isRegistering
+                ? "Join the smart drivers community"
+                : "Continue maximizing your earnings"}
             </p>
           </CardHeader>
           <CardContent className="space-y-6">
-            {/* Login Method Toggle */}
-            <div className="flex bg-gray-100 rounded-lg p-1">
-              <Button
-                type="button"
-                variant={loginMethod === "email" ? "default" : "ghost"}
-                className={`flex-1 h-10 ${
-                  loginMethod === "email"
-                    ? "bg-florida-ocean text-white"
-                    : "text-muted-foreground"
-                }`}
-                onClick={() => setLoginMethod("email")}
-              >
-                <Mail className="w-4 h-4 mr-2" />
-                Email
-              </Button>
-              <Button
-                type="button"
-                variant={loginMethod === "phone" ? "default" : "ghost"}
-                className={`flex-1 h-10 ${
-                  loginMethod === "phone"
-                    ? "bg-florida-ocean text-white"
-                    : "text-muted-foreground"
-                }`}
-                onClick={() => setLoginMethod("phone")}
-              >
-                <Smartphone className="w-4 h-4 mr-2" />
-                Phone
-              </Button>
-            </div>
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
+                {error}
+              </div>
+            )}
 
-            <form onSubmit={handleLogin} className="space-y-4">
-              {/* Email/Phone Input */}
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {/* Registration fields */}
+              {isRegistering && (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="firstName">First Name</Label>
+                      <Input
+                        id="firstName"
+                        type="text"
+                        placeholder="John"
+                        value={formData.firstName}
+                        onChange={(e) =>
+                          handleInputChange("firstName", e.target.value)
+                        }
+                        className="border-florida-ocean/30 focus:border-florida-ocean"
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="lastName">Last Name</Label>
+                      <Input
+                        id="lastName"
+                        type="text"
+                        placeholder="Driver"
+                        value={formData.lastName}
+                        onChange={(e) =>
+                          handleInputChange("lastName", e.target.value)
+                        }
+                        className="border-florida-ocean/30 focus:border-florida-ocean"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number (Optional)</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="(555) 123-4567"
+                      value={formData.phone}
+                      onChange={(e) =>
+                        handleInputChange("phone", e.target.value)
+                      }
+                      className="border-florida-ocean/30 focus:border-florida-ocean"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="city">City (Optional)</Label>
+                    <Input
+                      id="city"
+                      type="text"
+                      placeholder="Jacksonville"
+                      value={formData.city}
+                      onChange={(e) =>
+                        handleInputChange("city", e.target.value)
+                      }
+                      className="border-florida-ocean/30 focus:border-florida-ocean"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Email Input */}
               <div className="space-y-2">
-                <Label htmlFor="contact">
-                  {loginMethod === "email" ? "Email Address" : "Phone Number"}
-                </Label>
+                <Label htmlFor="email">Email Address</Label>
                 <Input
-                  id="contact"
-                  type={loginMethod === "email" ? "email" : "tel"}
-                  placeholder={
-                    loginMethod === "email"
-                      ? "driver@example.com"
-                      : "(555) 123-4567"
-                  }
-                  value={
-                    loginMethod === "email" ? formData.email : formData.phone
-                  }
-                  onChange={(e) =>
-                    handleInputChange(
-                      loginMethod === "email" ? "email" : "phone",
-                      e.target.value,
-                    )
-                  }
+                  id="email"
+                  type="email"
+                  placeholder="driver@example.com"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange("email", e.target.value)}
                   className="border-florida-ocean/30 focus:border-florida-ocean"
+                  required
                 />
               </div>
 
@@ -176,12 +253,18 @@ export default function Login() {
                   <Input
                     id="password"
                     type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder={
+                      isRegistering
+                        ? "Create a strong password"
+                        : "Enter your password"
+                    }
                     value={formData.password}
                     onChange={(e) =>
                       handleInputChange("password", e.target.value)
                     }
                     className="border-florida-ocean/30 focus:border-florida-ocean pr-10"
+                    required
+                    minLength={6}
                   />
                   <Button
                     type="button"
@@ -197,89 +280,112 @@ export default function Login() {
                     )}
                   </Button>
                 </div>
+                {isRegistering && (
+                  <p className="text-xs text-muted-foreground">
+                    Password must be at least 6 characters long
+                  </p>
+                )}
               </div>
 
               {/* Remember Me */}
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="remember"
-                  checked={formData.rememberMe}
-                  onCheckedChange={(checked) =>
-                    handleInputChange("rememberMe", checked as boolean)
-                  }
-                />
-                <Label htmlFor="remember" className="text-sm">
-                  Keep me signed in
-                </Label>
-              </div>
+              {!isRegistering && (
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="remember"
+                    checked={formData.rememberMe}
+                    onCheckedChange={(checked) =>
+                      handleInputChange("rememberMe", checked as boolean)
+                    }
+                  />
+                  <Label htmlFor="remember" className="text-sm">
+                    Keep me signed in
+                  </Label>
+                </div>
+              )}
 
               {/* Submit Button */}
               <Button
                 type="submit"
-                className="w-full h-12 bg-gradient-to-r from-florida-ocean to-florida-ocean-dark hover:from-florida-ocean-dark hover:to-florida-ocean text-white font-semibold text-lg"
+                disabled={isLoading}
+                className="w-full h-12 bg-gradient-to-r from-florida-ocean to-florida-ocean-dark hover:from-florida-ocean-dark hover:to-florida-ocean text-white font-semibold text-lg disabled:opacity-50"
               >
-                Start Free Trial
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    {isRegistering ? "Creating Account..." : "Signing In..."}
+                  </div>
+                ) : isRegistering ? (
+                  "Create Account"
+                ) : (
+                  "Sign In"
+                )}
               </Button>
             </form>
 
-            {/* Divider */}
-            <div className="relative">
-              <Separator />
-              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-muted-foreground">
-                or continue with
-              </span>
-            </div>
+            {/* Debug API Test Button */}
+            <Button
+              variant="outline"
+              className="w-full text-sm border-red-500 text-red-500 hover:bg-red-50"
+              onClick={runDebugTests}
+            >
+              🔧 Debug API Endpoints (Check Console)
+            </Button>
 
-            {/* Social Login */}
-            <div className="grid grid-cols-2 gap-3">
+            {/* Quick Test Account Button */}
+            <Button
+              variant="outline"
+              className="w-full text-sm border-green-500 text-green-500 hover:bg-green-50"
+              onClick={async () => {
+                try {
+                  await register({
+                    email: "test@example.com",
+                    password: "test123",
+                    firstName: "Test",
+                    lastName: "User",
+                  });
+                  alert("Test account created and logged in!");
+                } catch (error) {
+                  console.error("Test registration failed:", error);
+                  alert("Registration failed: " + error);
+                }
+              }}
+            >
+              🚀 Create Test Account (test@example.com / test123)
+            </Button>
+
+            {/* Switch between login/register */}
+            <div className="text-center">
               <Button
-                variant="outline"
-                className="h-12 border-florida-ocean/30 hover:bg-florida-ocean/5"
+                variant="ghost"
+                className="text-sm text-florida-ocean"
+                onClick={() => {
+                  setIsRegistering(!isRegistering);
+                  setError(null);
+                  setFormData((prev) => ({ ...prev, password: "" }));
+                }}
               >
-                <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
-                  <path
-                    fill="currentColor"
-                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                  />
-                  <path
-                    fill="currentColor"
-                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                  />
-                </svg>
-                Google
-              </Button>
-              <Button
-                variant="outline"
-                className="h-12 border-florida-ocean/30 hover:bg-florida-ocean/5"
-              >
-                <svg
-                  className="w-5 h-5 mr-2"
-                  viewBox="0 0 24 24"
-                  fill="currentColor"
-                >
-                  <path d="M18.71 19.5C17.88 20.74 17 21.95 15.66 21.97C14.32 22 13.89 21.18 12.37 21.18C10.84 21.18 10.37 21.95 9.1 22C7.79 22.05 6.8 20.68 5.96 19.47C4.25 17 2.94 12.45 4.7 9.39C5.57 7.87 7.13 6.91 8.82 6.88C10.1 6.86 11.32 7.75 12.11 7.75C12.89 7.75 14.37 6.68 15.92 6.84C16.57 6.87 18.39 7.1 19.56 8.82C19.47 8.88 17.39 10.1 17.41 12.63C17.44 15.65 20.06 16.66 20.09 16.67C20.06 16.74 19.67 18.11 18.71 19.5ZM13 3.5C13.73 2.67 14.94 2.04 15.94 2C16.07 3.17 15.6 4.35 14.9 5.19C14.21 6.04 13.07 6.7 11.95 6.61C11.8 5.46 12.36 4.26 13 3.5Z" />
-                </svg>
-                Apple
+                {isRegistering
+                  ? "Already have an account? Sign in"
+                  : "Don't have an account? Sign up"}
               </Button>
             </div>
 
             {/* Footer Links */}
             <div className="text-center space-y-2">
-              <Button variant="ghost" className="text-sm text-florida-ocean">
-                Forgot password?
-              </Button>
+              {!isRegistering && (
+                <Button variant="ghost" className="text-sm text-florida-ocean">
+                  Forgot password?
+                </Button>
+              )}
               <p className="text-xs text-muted-foreground">
                 By continuing, you agree to our{" "}
-                <span className="text-florida-ocean">Terms of Service</span> and{" "}
-                <span className="text-florida-ocean">Privacy Policy</span>
+                <span className="text-florida-ocean cursor-pointer">
+                  Terms of Service
+                </span>{" "}
+                and{" "}
+                <span className="text-florida-ocean cursor-pointer">
+                  Privacy Policy
+                </span>
               </p>
             </div>
           </CardContent>

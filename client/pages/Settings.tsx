@@ -354,6 +354,14 @@ export default function Settings() {
             <Button
               variant="ghost"
               className="w-full justify-start"
+              onClick={() => navigate("/vehicle")}
+            >
+              <Car className="w-5 h-5 mr-3" />
+              Vehicle Management
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
               onClick={() => navigate("/help")}
             >
               <HelpCircle className="w-5 h-5 mr-3" />

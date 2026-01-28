@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+  <head>
+    <title>API Endpoint Test</title>
+  </head>
+  <body>
+    <h1>API Endpoint Test</h1>
+    <button onclick="testEndpoints()">Test Endpoints</button>
+    <div id="results"></div>
+
+    <script>
+      async function testEndpoints() {
+        const resultsDiv = document.getElementById("results");
+        resultsDiv.innerHTML = "<p>Testing...</p>";
+
+        const results = [];
+
+        // Test different endpoints
+        const endpoints = [
+          { url: "/api/ping", method: "GET" },
+          { url: "/api/test", method: "GET" },
+          {
+            url: "/api/auth/login",
+            method: "POST",
+            data: { email: "test@test.com", password: "test123" },
+          },
+        ];
+
+        for (const endpoint of endpoints) {
+          try {
+            console.log(`Testing ${endpoint.method} ${endpoint.url}`);
+
+            const response = await fetch(endpoint.url, {
+              method: endpoint.method,
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: endpoint.data ? JSON.stringify(endpoint.data) : undefined,
+            });
+
+            const text = await response.text();
+
+            results.push({
+              endpoint: `${endpoint.method} ${endpoint.url}`,
+              status: response.status,
+              response: text,
+              success: response.ok,
+            });
+
+            console.log(
+              `${endpoint.method} ${endpoint.url} - ${response.status}: ${text}`,
+            );
+          } catch (error) {
+            results.push({
+              endpoint: `${endpoint.method} ${endpoint.url}`,
+              status: "ERROR",
+              response: error.message,
+              success: false,
+            });
+            console.error(`${endpoint.method} ${endpoint.url} - Error:`, error);
+          }
+        }
+
+        // Display results
+        let html = "<h2>Test Results:</h2>";
+        results.forEach((result) => {
+          const color = result.success ? "green" : "red";
+          html += `
+                    <div style="margin: 10px 0; padding: 10px; border: 1px solid ${color};">
+                        <strong>${result.endpoint}</strong><br>
+                        Status: <span style="color: ${color};">${result.status}</span><br>
+                        Response: <pre>${result.response}</pre>
+                    </div>
+                `;
+        });
+
+        resultsDiv.innerHTML = html;
+      }
+    </script>
+  </body>
+</html>

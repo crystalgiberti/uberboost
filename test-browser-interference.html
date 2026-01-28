@@ -1,0 +1,290 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Browser Interference Test</title>
+    <style>
+      body {
+        font-family: monospace;
+        margin: 20px;
+        background: #f0f0f0;
+      }
+      .test {
+        background: white;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 5px;
+        border: 1px solid #ccc;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 8px 16px;
+        margin: 5px;
+        border-radius: 3px;
+        cursor: pointer;
+      }
+      .log {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 10px;
+        margin: 10px 0;
+        white-space: pre-wrap;
+        font-family: monospace;
+        font-size: 12px;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🔍 Browser Interference Test</h1>
+    <p>
+      This page tests for browser extensions, dev tools, or other interference
+      with fetch API.
+    </p>
+
+    <div class="test">
+      <h2>Environment Check</h2>
+      <button onclick="checkEnvironment()">Check Environment</button>
+    </div>
+
+    <div class="test">
+      <h2>Fetch API Test</h2>
+      <button onclick="testBasicFetch()">Test Basic Fetch</button>
+      <button onclick="testPostFetch()">Test POST Fetch</button>
+    </div>
+
+    <div class="test">
+      <h2>Response Stream Test</h2>
+      <button onclick="testResponseStream()">Test Response Stream</button>
+      <button onclick="testMultipleReads()">Test Multiple Reads</button>
+    </div>
+
+    <div class="test">
+      <h2>API Test</h2>
+      <button onclick="testActualAPI()">Test Actual API</button>
+    </div>
+
+    <div class="test">
+      <button onclick="clearLog()">Clear Log</button>
+      <button onclick="downloadLog()">Download Log</button>
+    </div>
+
+    <div class="log" id="log">Ready to test...</div>
+
+    <script>
+      function log(message) {
+        const logEl = document.getElementById("log");
+        const timestamp = new Date().toISOString().substring(11, 23);
+        logEl.textContent += `[${timestamp}] ${message}\n`;
+        logEl.scrollTop = logEl.scrollHeight;
+        console.log(message);
+      }
+
+      function clearLog() {
+        document.getElementById("log").textContent = "Log cleared...\n";
+      }
+
+      function downloadLog() {
+        const logContent = document.getElementById("log").textContent;
+        const blob = new Blob([logContent], { type: "text/plain" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `browser-test-${Date.now()}.txt`;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+
+      function checkEnvironment() {
+        log("🔍 === ENVIRONMENT CHECK ===");
+
+        // Check fetch API
+        log(`Fetch available: ${typeof fetch}`);
+        log(`Fetch is native: ${fetch.toString().includes("[native code]")}`);
+        log(`Fetch length: ${fetch.toString().length}`);
+
+        // Check for service workers
+        if ("serviceWorker" in navigator) {
+          navigator.serviceWorker.getRegistrations().then((registrations) => {
+            log(`Service workers: ${registrations.length}`);
+            registrations.forEach((reg, i) => {
+              log(`SW ${i}: ${reg.scope}`);
+            });
+          });
+        } else {
+          log("Service workers: Not supported");
+        }
+
+        // Check for extensions/interceptors
+        log(`Window.fetch === fetch: ${window.fetch === fetch}`);
+        log(`Navigator: ${navigator.userAgent}`);
+
+        // Check dev tools
+        let devtools = false;
+        const start = performance.now();
+        debugger;
+        if (performance.now() - start > 100) {
+          devtools = true;
+        }
+        log(`DevTools likely open: ${devtools}`);
+
+        // Check console methods (some extensions override these)
+        log(`Console.log type: ${typeof console.log}`);
+        log(`Console.error type: ${typeof console.error}`);
+      }
+
+      async function testBasicFetch() {
+        log("🧪 === BASIC FETCH TEST ===");
+
+        try {
+          log("Making basic GET request...");
+          const response = await fetch("/api/ping");
+          log(`Response status: ${response.status}`);
+          log(`Response ok: ${response.ok}`);
+          log(`Response type: ${response.type}`);
+          log(`Body used (before): ${response.bodyUsed}`);
+
+          const text = await response.text();
+          log(`Body read, length: ${text.length}`);
+          log(`Body used (after): ${response.bodyUsed}`);
+          log("✅ Basic fetch successful");
+        } catch (error) {
+          log(`❌ Basic fetch failed: ${error.message}`);
+          log(`Error type: ${error.constructor.name}`);
+          log(`Error stack: ${error.stack}`);
+        }
+      }
+
+      async function testPostFetch() {
+        log("📤 === POST FETCH TEST ===");
+
+        try {
+          log("Making POST request...");
+          const response = await fetch("/api/test", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ test: "data" }),
+          });
+
+          log(`POST Response status: ${response.status}`);
+          log(`POST Body used (before): ${response.bodyUsed}`);
+
+          const text = await response.text();
+          log(`POST Body read, length: ${text.length}`);
+          log(`POST Body used (after): ${response.bodyUsed}`);
+          log("✅ POST fetch successful");
+        } catch (error) {
+          log(`❌ POST fetch failed: ${error.message}`);
+        }
+      }
+
+      async function testResponseStream() {
+        log("🌊 === RESPONSE STREAM TEST ===");
+
+        try {
+          log("Testing response stream behavior...");
+          const response = await fetch("/api/ping");
+
+          log(`Initial bodyUsed: ${response.bodyUsed}`);
+          log(`Response readable: ${response.body !== null}`);
+
+          // Try to clone the response
+          try {
+            const cloned = response.clone();
+            log("✅ Response clone successful");
+            log(`Original bodyUsed: ${response.bodyUsed}`);
+            log(`Clone bodyUsed: ${cloned.bodyUsed}`);
+
+            // Read from clone first
+            const cloneText = await cloned.text();
+            log(`Clone read successful, length: ${cloneText.length}`);
+            log(`After clone read - Original bodyUsed: ${response.bodyUsed}`);
+
+            // Now read from original
+            const originalText = await response.text();
+            log(`Original read successful, length: ${originalText.length}`);
+            log("✅ Stream test passed");
+          } catch (cloneError) {
+            log(`❌ Clone/read failed: ${cloneError.message}`);
+          }
+        } catch (error) {
+          log(`❌ Stream test failed: ${error.message}`);
+        }
+      }
+
+      async function testMultipleReads() {
+        log("🔄 === MULTIPLE READS TEST ===");
+
+        try {
+          log("Testing multiple reads (should fail)...");
+          const response = await fetch("/api/ping");
+
+          // First read
+          const text1 = await response.text();
+          log(`First read successful, length: ${text1.length}`);
+          log(`Body used after first read: ${response.bodyUsed}`);
+
+          // Second read (should fail)
+          try {
+            const text2 = await response.text();
+            log(`❌ Second read unexpectedly succeeded: ${text2.length}`);
+          } catch (secondError) {
+            log(`✅ Second read failed as expected: ${secondError.message}`);
+          }
+        } catch (error) {
+          log(`❌ Multiple reads test failed: ${error.message}`);
+        }
+      }
+
+      async function testActualAPI() {
+        log("🎯 === ACTUAL API TEST ===");
+
+        const testData = {
+          email: "test@example.com",
+          password: "password123",
+          firstName: "Test",
+          lastName: "User",
+        };
+
+        try {
+          log("Testing actual register API...");
+          log(`Request data: ${JSON.stringify(testData)}`);
+
+          const response = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(testData),
+          });
+
+          log(`API Response status: ${response.status}`);
+          log(`API Response ok: ${response.ok}`);
+          log(`API Body used (before): ${response.bodyUsed}`);
+
+          const text = await response.text();
+          log(`API Body read, length: ${text.length}`);
+          log(`API Response preview: ${text.substring(0, 200)}`);
+          log(`API Body used (after): ${response.bodyUsed}`);
+
+          if (response.ok) {
+            log("✅ API test successful");
+          } else {
+            log(`⚠️ API returned error status: ${response.status}`);
+          }
+        } catch (error) {
+          log(`❌ API test failed: ${error.message}`);
+          log(`Error type: ${error.constructor.name}`);
+        }
+      }
+
+      // Initialize
+      log("🚀 Browser interference test ready!");
+      log("Click buttons above to run tests");
+    </script>
+  </body>
+</html>

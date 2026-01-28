@@ -1,0 +1,271 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Direct API Test</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+        background: #f0f0f0;
+      }
+      .test-section {
+        background: white;
+        padding: 20px;
+        margin: 20px 0;
+        border-radius: 8px;
+        border: 1px solid #ddd;
+      }
+      button {
+        background: #007bff;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        margin: 5px;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      button:disabled {
+        background: #6c757d;
+        cursor: not-allowed;
+      }
+      input {
+        width: 200px;
+        padding: 8px;
+        margin: 5px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+      }
+      .result {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 4px;
+        font-family: monospace;
+        white-space: pre-wrap;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+      .success {
+        border-color: #28a745;
+        background: #d4edda;
+      }
+      .error {
+        border-color: #dc3545;
+        background: #f8d7da;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🎯 Direct API Test</h1>
+    <p>
+      This tests the API with absolutely minimal code - no frameworks, no
+      wrappers.
+    </p>
+
+    <div class="test-section">
+      <h2>Test Data</h2>
+      <div>
+        <input
+          type="email"
+          id="email"
+          placeholder="Email"
+          value="test@example.com"
+        />
+        <input
+          type="password"
+          id="password"
+          placeholder="Password"
+          value="password123"
+        />
+        <input
+          type="text"
+          id="firstName"
+          placeholder="First Name"
+          value="Test"
+        />
+        <input type="text" id="lastName" placeholder="Last Name" value="User" />
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2>API Tests</h2>
+      <button onclick="testDirectPing()">Test Ping</button>
+      <button onclick="testDirectRegister()">Test Register</button>
+      <button onclick="testDirectLogin()">Test Login</button>
+      <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <div class="test-section">
+      <h2>Results</h2>
+      <div id="log" class="result">Ready to test...</div>
+    </div>
+
+    <script>
+      function log(message, isError = false) {
+        const logEl = document.getElementById("log");
+        const timestamp = new Date().toISOString().substring(11, 23);
+        const prefix = isError ? "❌" : "ℹ️";
+        logEl.textContent += `[${timestamp}] ${prefix} ${message}\n`;
+        logEl.scrollTop = logEl.scrollHeight;
+
+        if (isError) {
+          logEl.className = "result error";
+        } else if (message.includes("✅")) {
+          logEl.className = "result success";
+        } else {
+          logEl.className = "result";
+        }
+
+        console.log(`${prefix} ${message}`);
+      }
+
+      function clearLog() {
+        document.getElementById("log").textContent = "Log cleared...\n";
+        document.getElementById("log").className = "result";
+      }
+
+      async function testDirectPing() {
+        log("🎯 Starting direct ping test");
+
+        try {
+          const response = await fetch("/api/ping");
+          log(`Response status: ${response.status} ${response.statusText}`);
+
+          const text = await response.text();
+          log(`Response body: ${text}`);
+
+          if (response.ok) {
+            try {
+              const data = JSON.parse(text);
+              log("✅ Ping successful - JSON parsed");
+              log(`Server message: ${data.message || "No message"}`);
+            } catch {
+              log("✅ Ping successful - Not JSON but OK");
+            }
+          } else {
+            log(`❌ Ping failed with status ${response.status}`, true);
+          }
+        } catch (error) {
+          log(`❌ Ping error: ${error.message}`, true);
+        }
+      }
+
+      async function testDirectRegister() {
+        log("🎯 Starting direct register test");
+
+        const userData = {
+          email: document.getElementById("email").value,
+          password: document.getElementById("password").value,
+          firstName: document.getElementById("firstName").value,
+          lastName: document.getElementById("lastName").value,
+        };
+
+        log(`Registering: ${userData.email}`);
+
+        try {
+          const response = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(userData),
+          });
+
+          log(`Response status: ${response.status} ${response.statusText}`);
+
+          const text = await response.text();
+          log(`Response body: ${text.substring(0, 500)}...`);
+
+          if (response.ok) {
+            try {
+              const data = JSON.parse(text);
+              log("✅ Registration successful!");
+              log(`User email: ${data.user?.email || "Unknown"}`);
+              log(`Token received: ${data.token ? "Yes" : "No"}`);
+
+              if (data.token) {
+                localStorage.setItem("auth_token", data.token);
+                log("Token saved to localStorage");
+              }
+            } catch (parseError) {
+              log(`❌ Failed to parse response: ${parseError.message}`, true);
+            }
+          } else {
+            let errorMsg = `Registration failed (${response.status})`;
+            try {
+              const errorData = JSON.parse(text);
+              errorMsg = errorData.error || errorMsg;
+            } catch {
+              errorMsg = text || errorMsg;
+            }
+            log(`❌ ${errorMsg}`, true);
+          }
+        } catch (error) {
+          log(`❌ Registration error: ${error.message}`, true);
+        }
+      }
+
+      async function testDirectLogin() {
+        log("🎯 Starting direct login test");
+
+        const credentials = {
+          email: document.getElementById("email").value,
+          password: document.getElementById("password").value,
+        };
+
+        log(`Logging in: ${credentials.email}`);
+
+        try {
+          const response = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(credentials),
+          });
+
+          log(`Response status: ${response.status} ${response.statusText}`);
+
+          const text = await response.text();
+          log(`Response body: ${text.substring(0, 500)}...`);
+
+          if (response.ok) {
+            try {
+              const data = JSON.parse(text);
+              log("✅ Login successful!");
+              log(`User email: ${data.user?.email || "Unknown"}`);
+              log(`Token received: ${data.token ? "Yes" : "No"}`);
+
+              if (data.token) {
+                localStorage.setItem("auth_token", data.token);
+                log("Token saved to localStorage");
+              }
+            } catch (parseError) {
+              log(`❌ Failed to parse response: ${parseError.message}`, true);
+            }
+          } else {
+            let errorMsg = `Login failed (${response.status})`;
+            try {
+              const errorData = JSON.parse(text);
+              errorMsg = errorData.error || errorMsg;
+            } catch {
+              errorMsg = text || errorMsg;
+            }
+            log(`❌ ${errorMsg}`, true);
+          }
+        } catch (error) {
+          log(`❌ Login error: ${error.message}`, true);
+        }
+      }
+
+      // Initialize
+      log("🚀 Direct API Test Ready!");
+    </script>
+  </body>
+</html>
